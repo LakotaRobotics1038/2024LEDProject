@@ -51,10 +51,7 @@ def HSVtoRGB(H, S, V):
 
         return (int(R), int(G), int(B))
 
-def rainbow():
-    H = 0.3
-    S = 1
-    V = 1
+def Rainbow(H = 0, S = 0, V = 0, delay = 0.001):
     while True:
         if (H >= 1):
             H = 0
@@ -62,7 +59,28 @@ def rainbow():
         for i in range(npNum):
             np[i] = HSVtoRGB(H, S, V)
         np.write()
-        H += 0.00281690140845
-        time.sleep(0.00281690140845)
+        H += 0.001
+        time.sleep(delay)
 
-rainbow()
+def OverlappingRainbow(H = 0, S = 0, V = 0, individualDelay = 0.05, delay = 0.1):
+    while True:
+        if (H >= 1):
+            H = 0
+        
+        for i in range(npNum):
+            np[i] = HSVtoRGB(H, S, V)
+            time.sleep(individualDelay)
+            np.write()
+        H += 0.1
+        time.sleep(delay)
+
+def OverlappingValues(colList = [], individualDelay = 0.05, delay = 0.1):
+    while True:
+        for i in colList:
+            for j in range(npNum):
+                np[j] = i
+                time.sleep(individualDelay)
+                np.write()
+            time.sleep(delay)
+
+OverlappingValues([(200, 0, 200), (0, 0, 200)], 0.05, 0.1)
