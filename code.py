@@ -74,13 +74,41 @@ def OverlappingRainbow(H = 0, S = 0, V = 0, individualDelay = 0.05, delay = 0.1)
         H += 0.1
         time.sleep(delay)
 
-def OverlappingValues(colList = [], individualDelay = 0.05, delay = 0.1):
+def OverlappingValues(colList = [], individualDelay = 0.05, delay = 0.1, direction = "up"):
+    LEDDir = "up"
     while True:
         for i in colList:
+            if (direction == "alternating"):
+                if (LEDDir == "up"):
+                    LEDDir = "down"
+                elif (LEDDir == "down"):
+                    LEDDir = "up"
             for j in range(npNum):
-                np[j] = i
+                if (direction == "up"):
+                    np[j] = i
+                elif (direction == "down"):
+                    np[npNum - j - 1] = i
+                elif (direction == "alternating"):
+                    if (LEDDir == "up"):
+                        np[j] = i
+                    elif (LEDDir == "down"):
+                        np[npNum - j - 1] = i
                 time.sleep(individualDelay)
                 np.write()
             time.sleep(delay)
 
-OverlappingValues([(200, 0, 200), (0, 0, 200)], 0.05, 0.1)
+def Flashing(colList = [], delay = 1):
+    while True:
+        for i in colList:
+            for j in range(npNum):
+                np[j] = i
+                np.write()
+            time.sleep(delay)
+            for j in range(npNum):
+                np[j] = (0, 0, 0)
+                np.write()
+            time.sleep(delay)
+# Rainbow(0, 1, 1, 0.01)
+# OverlappingRainbow(0, 1, 1, 0.05, 0.1)
+# OverlappingValues([(200, 0, 200), (0, 0, 200), (0, 255, 0)], 0.05, 0.1, "up")
+# Flashing([(200, 0, 200), (0, 0, 200), (0, 255, 0)], 0.5)
