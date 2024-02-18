@@ -3,8 +3,16 @@ import machine, neopixel
 
 time.sleep(0.1)
 
-npNum = 7
-np = neopixel.NeoPixel(machine.Pin(0), npNum)
+np0Num = 26
+np0 = neopixel.NeoPixel(machine.Pin(0), np0Num)
+np1Num = 26
+np1 = neopixel.NeoPixel(machine.Pin(1), np1Num)
+np2Num = 44
+np2 = neopixel.NeoPixel(machine.Pin(2), np2Num)
+np3Num = 26
+np3 = neopixel.NeoPixel(machine.Pin(3), np3Num)
+np4Num = 12
+np4 = neopixel.NeoPixel(machine.Pin(4), np4Num)
 
 def HSVtoRGB(H, S, V):
     if (S == 0):
@@ -51,53 +59,47 @@ def HSVtoRGB(H, S, V):
 
         return (int(R), int(G), int(B))
 
-def Rainbow(H = 0, S = 0, V = 0, delay = 0.001):
+def Rainbow(np, npNum, H = 0, S = 0, V = 0, delay = 0.001):
     while True:
-        if (H >= 1):
-            H = 0
-        
-        for i in range(npNum):
-            np[i] = HSVtoRGB(H, S, V)
-        np.write()
-        H += 0.001
-        time.sleep(delay)
+      if (H >= 1):
+          H = 0
+      
+      for i in range(npNum):
+          np[i] = HSVtoRGB(H, S, V)
+      np.write()
+      H += 0.001
+      time.sleep(delay)
 
-def OverlappingRainbow(H = 0, S = 0, V = 0, individualDelay = 0.05, delay = 0.1):
+def OverlappingRainbow(np, npNum, H = 0, S = 0, V = 0, individualDelay = 0.05, delay = 0.1):
     while True:
-        if (H >= 1):
-            H = 0
-        
-        for i in range(npNum):
-            np[i] = HSVtoRGB(H, S, V)
-            time.sleep(individualDelay)
-            np.write()
-        H += 0.1
-        time.sleep(delay)
+      if (H >= 1):
+          H = 0
+      
+      for i in range(npNum):
+          np[i] = HSVtoRGB(H, S, V)
+          time.sleep(individualDelay)
+          np.write()
+      H += 0.1
+      time.sleep(delay)
 
-def OverlappingValues(colList = [], individualDelay = 0.05, delay = 0.1, direction = "up"):
-    LEDDir = "up"
+def OverlappingValues(np, npNum, colList = [], individualDelay = 0.05, delay = 0.1, direction = "up"):
     while True:
-        for i in colList:
-            if (direction == "alternating"):
-                if (LEDDir == "up"):
-                    LEDDir = "down"
-                elif (LEDDir == "down"):
-                    LEDDir = "up"
-            for j in range(npNum):
-                if (direction == "up"):
-                    np[j] = i
-                elif (direction == "down"):
-                    np[npNum - j - 1] = i
-                elif (direction == "alternating"):
-                    if (LEDDir == "up"):
-                        np[j] = i
-                    elif (LEDDir == "down"):
-                        np[npNum - j - 1] = i
-                time.sleep(individualDelay)
-                np.write()
-            time.sleep(delay)
+      for i in colList:
+          for j in range(npNum):
+              if (direction == "up"):
+                  np[j] = i
+              elif (direction == "down"):
+                  np[npNum - j - 1] = i
 
-def Flashing(colList = [], delay = 1):
+
+
+
+
+              time.sleep(individualDelay)
+              np.write()
+          time.sleep(delay)
+
+def Flashing(np, npNum, colList = [], delay = 1):
     while True:
         for i in colList:
             for j in range(npNum):
@@ -108,7 +110,8 @@ def Flashing(colList = [], delay = 1):
                 np[j] = (0, 0, 0)
                 np.write()
             time.sleep(delay)
-# Rainbow(0, 1, 1, 0.01)
+Rainbow(np0, np0Num, 0, 1, 1, 0.01)
+Rainbow(np1, np1Num, 0, 1, 1, 0.01)
 # OverlappingRainbow(0, 1, 1, 0.05, 0.1)
 # OverlappingValues([(200, 0, 200), (0, 0, 200), (0, 255, 0)], 0.05, 0.1, "up")
 # Flashing([(200, 0, 200), (0, 0, 200), (0, 255, 0)], 0.5)
