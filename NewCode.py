@@ -3,28 +3,28 @@ import machine, neopixel
 
 time.sleep(0.1)
 
-npNum = {
-    "npNum0" : 26,
-    "npNum1" : 26,
-    "npNum2" : 44,
-    "npNum3" : 26,
-    "npNum4" : 12
-}
+npNum = [
+    26,
+    26,
+    44,
+    26,
+    12
+]
 
-np = {
-    "np0" : neopixel.NeoPixel(machine.Pin(0), npNum["npNum0"]),
-    "np1" : neopixel.NeoPixel(machine.Pin(1), npNum["npNum1"]),
-    "np2" : neopixel.NeoPixel(machine.Pin(2), npNum["npNum2"]),
-    "np3" : neopixel.NeoPixel(machine.Pin(3), npNum["npNum3"]),
-    "np4" : neopixel.NeoPixel(machine.Pin(4), npNum["npNum4"])
-}
+np = [
+    neopixel.NeoPixel(machine.Pin(0), npNum[0]),
+    neopixel.NeoPixel(machine.Pin(1), npNum[1]),
+    neopixel.NeoPixel(machine.Pin(2), npNum[2]),
+    neopixel.NeoPixel(machine.Pin(3), npNum[3]),
+    neopixel.NeoPixel(machine.Pin(4), npNum[4])
+]
 
 npMode = [
-    "Rainbow",
-    "Rainbow",
-    "Rainbow",
-    "Rainbow",
-    "Rainbow"
+    ["AlternatingRainbow", 0, 1, 1],
+    ["AlternatingRainbow", 0, 1, 1],
+    ["AlternatingRainbow", 0, 1, 1],
+    ["AlternatingRainbow", 0, 1, 1],
+    ["Rainbow", 0, 1, 1]
 ]
 
 def HSVtoRGB(H, S, V):
@@ -72,19 +72,22 @@ def HSVtoRGB(H, S, V):
 
         return (int(R), int(G), int(B))
 
-
-RainbowH = 0
-RainbowS = 1
-RainbowV = 1
 while True:
     for i in range(0, len(np)):
-        if (npMode[i] == "Rainbow"):
-            if (RainbowH >= 1):
-                RainbowH = 0
-            for j in range(0, npNum["npNum"+str(i)]):
-                np["np"+str(i)][j] = HSVtoRGB(RainbowH, RainbowS, RainbowV)
-            np["np"+str(i)].write()
-            RainbowH += 0.01
-            time.sleep(0.01)
-        elif (npMode[i] == "AlternatingRainbow"):
-            pass
+        if (npMode[i][0] == "Rainbow"):
+            if (npMode[i][1] >= 1):
+                npMode[i][1] = 0
+            for j in range(0, npNum[i]):
+                np[i][j] = HSVtoRGB(npMode[i][1], npMode[i][2], npMode[i][3])
+            np[i].write()
+            npMode[i][1] += 0.001
+            time.sleep(0.001)
+        elif (npMode[i][0] == "AlternatingRainbow"):
+            if (npMode[i][1] >= 1):
+                npMode[i][1] = 0
+            for j in range(0, npNum[i]):
+                np[i][j] = HSVtoRGB(npMode[i][1], npMode[i][2], npMode[i][3])
+                time.sleep(0.025)
+                np[i].write()
+            npMode[i][1] += 0.1
+            time.sleep(0.1)
