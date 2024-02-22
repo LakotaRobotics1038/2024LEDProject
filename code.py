@@ -1,7 +1,6 @@
-import time
 import machine, neopixel
+import asyncio
 
-time.sleep(0.1)
 
 np0Num = 26
 np0 = neopixel.NeoPixel(machine.Pin(0), np0Num)
@@ -59,7 +58,7 @@ def HSVtoRGB(H, S, V):
 
         return (int(R), int(G), int(B))
 
-def Rainbow(np, npNum, H = 0, S = 0, V = 0, delay = 0.001):
+async def Rainbow(np, npNum, H = 0, S = 0, V = 0, delay = 0.001):
     while True:
       if (H >= 1):
           H = 0
@@ -68,21 +67,21 @@ def Rainbow(np, npNum, H = 0, S = 0, V = 0, delay = 0.001):
           np[i] = HSVtoRGB(H, S, V)
       np.write()
       H += 0.001
-      time.sleep(delay)
+      await asyncio.sleep(delay)
 
-def OverlappingRainbow(np, npNum, H = 0, S = 0, V = 0, individualDelay = 0.05, delay = 0.1):
+async def OverlappingRainbow(np, npNum, H = 0, S = 0, V = 0, individualDelay = 0.05, delay = 0.1):
     while True:
       if (H >= 1):
           H = 0
       
       for i in range(npNum):
           np[i] = HSVtoRGB(H, S, V)
-          time.sleep(individualDelay)
+          await asyncio.sleep(individualDelay)
           np.write()
       H += 0.1
-      time.sleep(delay)
+      await asyncio.sleep(delay)
 
-def OverlappingValues(np, npNum, colList = [], individualDelay = 0.05, delay = 0.1, direction = "up"):
+async def OverlappingValues(np, npNum, colList = [], individualDelay = 0.05, delay = 0.1, direction = "up"):
     while True:
       for i in colList:
           for j in range(npNum):
@@ -90,28 +89,29 @@ def OverlappingValues(np, npNum, colList = [], individualDelay = 0.05, delay = 0
                   np[j] = i
               elif (direction == "down"):
                   np[npNum - j - 1] = i
-
-
-
-
-
-              time.sleep(individualDelay)
+              await asyncio.sleep(individualDelay)
               np.write()
-          time.sleep(delay)
+          await asyncio.sleep(delay)
 
-def Flashing(np, npNum, colList = [], delay = 1):
+async def Flashing(np, npNum, colList = [], delay = 1):
     while True:
         for i in colList:
             for j in range(npNum):
                 np[j] = i
                 np.write()
-            time.sleep(delay)
+            await asyncio.sleep(delay)
             for j in range(npNum):
                 np[j] = (0, 0, 0)
                 np.write()
-            time.sleep(delay)
-Rainbow(np0, np0Num, 0, 1, 1, 0.01)
-Rainbow(np1, np1Num, 0, 1, 1, 0.01)
-# OverlappingRainbow(0, 1, 1, 0.05, 0.1)
-# OverlappingValues([(200, 0, 200), (0, 0, 200), (0, 255, 0)], 0.05, 0.1, "up")
-# Flashing([(200, 0, 200), (0, 0, 200), (0, 255, 0)], 0.5)
+            await asyncio.sleep(delay)
+async def main():
+  await asyncio.gather(
+    Rainbow(np0, np0Num, 0, 1, 1, 0.01),
+    Rainbow(np1, np1Num, 0, 1, 1, 0.01),
+    OverlappingRainbow(np2, np2Num, 0, 1, 1, 0.05, 0.1),
+    OverlappingValues(np3, np3Num, [(200, 0, 200), (0, 0, 200), (0, 255, 0)], 0.05, 0.1, "up"),
+    Flashing(np4, np4Num, [(200, 0, 200), (0, 0, 200), (0, 255, 0)], 0.5)
+  )
+
+
+asyncio.run(main())
