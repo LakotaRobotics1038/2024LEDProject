@@ -1,5 +1,7 @@
 import time
 import machine, neopixel
+import _thread
+import asyncio
 
 time.sleep(0.1)
 
@@ -20,10 +22,10 @@ np = [
 ]
 
 npMode = [
-    ["AlternatingRainbow", 0, 1, 1],
-    ["AlternatingRainbow", 0, 1, 1],
-    ["AlternatingRainbow", 0, 1, 1],
-    ["AlternatingRainbow", 0, 1, 1],
+    ["Rainbow", 0, 1, 1],
+    ["Rainbow", 0, 1, 1],
+    ["Rainbow", 0, 1, 1],
+    ["Rainbow", 0, 1, 1],
     ["Rainbow", 0, 1, 1]
 ]
 
@@ -72,22 +74,43 @@ def HSVtoRGB(H, S, V):
 
         return (int(R), int(G), int(B))
 
-while True:
-    for i in range(0, len(np)):
-        if (npMode[i][0] == "Rainbow"):
-            if (npMode[i][1] >= 1):
-                npMode[i][1] = 0
-            for j in range(0, npNum[i]):
-                np[i][j] = HSVtoRGB(npMode[i][1], npMode[i][2], npMode[i][3])
-            np[i].write()
-            npMode[i][1] += 0.001
-            time.sleep(0.001)
-        elif (npMode[i][0] == "AlternatingRainbow"):
-            if (npMode[i][1] >= 1):
-                npMode[i][1] = 0
-            for j in range(0, npNum[i]):
-                np[i][j] = HSVtoRGB(npMode[i][1], npMode[i][2], npMode[i][3])
-                time.sleep(0.025)
-                np[i].write()
-            npMode[i][1] += 0.1
-            time.sleep(0.1)
+def Rainbow(i):
+    print("hi")
+    if (npMode[i][1] >= 1):
+        npMode[i][1] = 0
+    for j in range(0, npNum[i]):
+        np[i][j] = HSVtoRGB(npMode[i][1], npMode[i][2], npMode[i][3])
+    np[i].write()
+    npMode[i][1] += 0.001
+    time.sleep(0.001)
+
+# for i in range(0, len(np)):
+#     if (npMode[i][0] == "Rainbow"):
+#         print("hi")
+#         _thread.start_new_thread(Rainbow, (i,))
+#         print("hello")
+#     elif (npMode[i][0] == "AlternatingRainbow"):
+#         if (npMode[i][1] >= 1):
+#             npMode[i][1] = 0
+#         for j in range(0, npNum[i]):
+#             np[i][j] = HSVtoRGB(npMode[i][1], npMode[i][2], npMode[i][3])
+#             time.sleep(0.025)
+#             np[i].write()
+#         npMode[i][1] += 0.1
+#         time.sleep(0.1)
+
+async def side1():
+    time.sleep(2)
+    print('hello')
+
+async def side2():
+    print('hi')
+
+async def main():
+    task1 = asyncio.create_task(side1())
+    task2 = asyncio.create_task(side2())
+
+    await task1
+    await task2
+
+asyncio.run(main())
