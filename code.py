@@ -1,7 +1,6 @@
 import machine, neopixel
 import asyncio
 
-
 np0Num = 26
 np0 = neopixel.NeoPixel(machine.Pin(0), np0Num)
 np1Num = 26
@@ -58,7 +57,7 @@ def HSVtoRGB(H, S, V):
 
         return (int(R), int(G), int(B))
 
-async def Rainbow(np, npNum, H = 0, S = 0, V = 0, delay = 0.001):
+async def Rainbow(np, npNum, H, S, V, interval, delay):
     while True:
       if (H >= 1):
           H = 0
@@ -66,7 +65,7 @@ async def Rainbow(np, npNum, H = 0, S = 0, V = 0, delay = 0.001):
       for i in range(npNum):
           np[i] = HSVtoRGB(H, S, V)
       np.write()
-      H += 0.001
+      H += interval
       await asyncio.sleep(delay)
 
 async def OverlappingRainbow(np, npNum, H = 0, S = 0, V = 0, individualDelay = 0.05, delay = 0.1):
@@ -106,8 +105,8 @@ async def Flashing(np, npNum, colList = [], delay = 1):
             await asyncio.sleep(delay)
 async def main():
   await asyncio.gather(
-    Rainbow(np0, np0Num, 0, 1, 1, 0.01),
-    Rainbow(np1, np1Num, 0, 1, 1, 0.01),
+    Rainbow(np0, np0Num, 0, 1, 1, 0.05, 0.25),
+    Rainbow(np1, np1Num, 0, 1, 1, 0.05, 0.25),
     OverlappingRainbow(np2, np2Num, 0, 1, 1, 0.05, 0.1),
     OverlappingValues(np3, np3Num, [(200, 0, 200), (0, 0, 200), (0, 255, 0)], 0.05, 0.1, "up"),
     Flashing(np4, np4Num, [(200, 0, 200), (0, 0, 200), (0, 255, 0)], 0.5)
