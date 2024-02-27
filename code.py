@@ -1,16 +1,17 @@
-import machine, neopixel
+import board
+import neopixel
 import asyncio
 
 np0Num = 26
-np0 = neopixel.NeoPixel(machine.Pin(0), np0Num)
+np0 = neopixel.NeoPixel(board.D0, np0Num, pixel_order=neopixel.RGBW)
 np1Num = 26
-np1 = neopixel.NeoPixel(machine.Pin(1), np1Num)
+np1 = neopixel.NeoPixel(board.D1, np1Num, pixel_order=neopixel.RGBW)
 np2Num = 44
-np2 = neopixel.NeoPixel(machine.Pin(2), np2Num)
+np2 = neopixel.NeoPixel(board.D2, np2Num, pixel_order=neopixel.RGBW)
 np3Num = 26
-np3 = neopixel.NeoPixel(machine.Pin(3), np3Num)
+np3 = neopixel.NeoPixel(board.D3, np3Num, pixel_order=neopixel.RGBW)
 np4Num = 12
-np4 = neopixel.NeoPixel(machine.Pin(4), np4Num)
+np4 = neopixel.NeoPixel(board.D4, np4Num, pixel_order=neopixel.RGBW)
 
 def HSVtoRGB(H, S, V):
     if (S == 0):
