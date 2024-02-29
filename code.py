@@ -59,10 +59,10 @@ def HSVtoRGB(H, S, V):
 
         return (int(R), int(G), int(B))
 
-async def Rainbow(np, H, S, V, HueStart, HueEnd, interval, delay, direction):
+async def Fade(np, H, S, V, HueStart, HueEnd, interval, delay, direction):
     while True:
         if (H >= HueEnd):
-            direction = "back"
+            direction = "backward"
         elif (H <= HueStart):
             direction = "forward"
       
@@ -72,20 +72,8 @@ async def Rainbow(np, H, S, V, HueStart, HueEnd, interval, delay, direction):
         if (direction == "forward"):
             H += interval
         elif (direction == "backward"):
-            H-= interval
+            H -= interval
         await asyncio.sleep(delay)
-
-async def OverlappingRainbow(np, H = 0, S = 0, V = 0, individualDelay = 0.05, delay = 0.1):
-    while True:
-      if (H >= 1):
-          H = 0
-      
-      for i in range(len(np)):
-          np[i] = HSVtoRGB(H, S, V)
-          await asyncio.sleep(individualDelay)
-          np.write()
-      H += 0.1
-      await asyncio.sleep(delay)
 
 async def OverlappingValues(np, colList, individualDelay, direction):
     while True:
@@ -94,7 +82,7 @@ async def OverlappingValues(np, colList, individualDelay, direction):
                 if (direction == "up"):
                     np[j] = i
                 elif (direction == "down"):
-                    np[npNum - j - 1] = i
+                    np[len(np) - j - 1] = i
                 await asyncio.sleep(individualDelay)
                 np.write()
 
@@ -108,9 +96,10 @@ async def Flashing(np, colList, delay):
 
 async def main():
     await asyncio.gather(
-        Rainbow(np[0], 0.6666666648, 1, 0.7843, 0.6666666648, 0.833333331, 0.01, 0.05, "forward")
+        Flashing(np[0], [(0, 0, 200), (200, 0, 200)], 1)
     )
-
+# OverlappingValues(np[0], [(0, 0, 200), (200, 0, 200)], 0.05, "up")
+# Fade(np[0], 0.6666666648, 1, 0.7843, 0.6666666648, 0.833333331, 0.01, 0.05, "forward")
 
 asyncio.run(main())
 
