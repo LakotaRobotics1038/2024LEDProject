@@ -1,4 +1,5 @@
-import machine, neopixel
+import machine
+import neopixel
 import asyncio
 
 np = [
@@ -8,11 +9,11 @@ np = [
     neopixel.NeoPixel(machine.Pin(5), 26),
     neopixel.NeoPixel(machine.Pin(6), 12)
 ]
-
-for i in range(len(np)):
-    for j in range(len(np[i])):
-        np[i][j] = (0, 0, 0)
-    np[i].write()
+def Clear():
+    for i in range(len(np)):
+        for j in range(len(np[i])):
+            np[i][j] = (0, 0, 0)
+        np[i].write()
 
 def HSVtoRGB(H, S, V):
     if (S == 0):
@@ -59,23 +60,52 @@ def HSVtoRGB(H, S, V):
 
         return (int(R), int(G), int(B))
 
-async def Fade(np, H, S, V, HueStart, HueEnd, interval, delay, direction):
+def SingularFade(np, count, h, s, v):
+    np[i] = H
+
+async def Fade(np, startDelay, h, s, v, interval, delay, direction, directionSwitchDelay):
+    await asyncio.sleep(startDelay)
+    currentH = h["start"]
+    
     while True:
-        if (H >= HueEnd):
+        if (currentH >= h["end"]):
             direction = "backward"
-        elif (H <= HueStart):
+            await asyncio.sleep(directionSwitchDelay)
+        elif (currentH <= h["start"]):
             direction = "forward"
+            await asyncio.sleep(directionSwitchDelay)
       
         for i in range(len(np)):
-            np[i] = HSVtoRGB(H, S, V)
+            np[i] = HSVtoRGB(currentH, s, v)
         np.write()
         if (direction == "forward"):
-            H += interval
+            currentH += interval
         elif (direction == "backward"):
-            H -= interval
+            currentH -= interval
         await asyncio.sleep(delay)
 
-async def OverlappingValues(np, colList, individualDelay, direction):
+async def OverlappingFade(np, startDelay, h, s, v, interval, delay, direction, directionSwitchDelay):
+    await asyncio.sleep(startDelay)
+    currentH = h["start"]
+    
+    while True:
+        if (currentH >= h["end"]):
+            direction = "backward"
+            await asyncio.sleep(directionSwitchDelay)
+        elif (currentH <= h["start"]):
+            direction = "forward"
+            await asyncio.sleep(directionSwitchDelay)
+      
+        for i in range(len(np)):
+            SingularFade(np[0], i, currentH, s, v)
+        if (direction == "forward"):
+            currentH += interval
+        elif (direction == "backward"):
+            currentH -= interval
+        await asyncio.sleep(delay)
+
+async def OverlappingValues(np, startDelay, colList, individualDelay, direction):
+    await asyncio.sleep(startDelay)
     while True:
         for i in colList:
             for j in range(len(np)):
@@ -86,7 +116,8 @@ async def OverlappingValues(np, colList, individualDelay, direction):
                 await asyncio.sleep(individualDelay)
                 np.write()
 
-async def Flashing(np, colList, delay):
+async def Value(np, startDelay, colList, delay):
+    await asyncio.sleep(startDelay)
     while True:
         for i in colList:
             for j in range(len(np)):
@@ -94,12 +125,13 @@ async def Flashing(np, colList, delay):
                 np.write()
             await asyncio.sleep(delay)
 
-async def main():
+async def Main():
     await asyncio.gather(
-        Flashing(np[0], [(0, 0, 200), (200, 0, 200)], 1)
+        OverlappingFade(np[0], 0, {"start":0.6666666648, "end":0.833333331}, 1, 0.7843, 0.001, 0.005, "forward", 1)
     )
-# OverlappingValues(np[0], [(0, 0, 200), (200, 0, 200)], 0.05, "up")
-# Fade(np[0], 0.6666666648, 1, 0.7843, 0.6666666648, 0.833333331, 0.01, 0.05, "forward")
+# OverlappingValues(np[0], 0, [(0, 0, 200), (200, 0, 200)], 0.05, "up")
+# Fade(np[0], 0, {"start":0.6666666648, "end":0.833333331}, 1, 0.7843, 0.001, 0.005, "forward", 1)
 
-asyncio.run(main())
+Clear()
+asyncio.run(Main())
 
