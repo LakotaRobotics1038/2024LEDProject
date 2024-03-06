@@ -8,7 +8,7 @@ poll_obj = select.poll()
 poll_obj.register(sys.stdin, 1)
 
 np = [
-    neopixel.NeoPixel(machine.Pin(2), 31), #26
+    neopixel.NeoPixel(machine.Pin(2), 26),
     neopixel.NeoPixel(machine.Pin(3), 26),
     neopixel.NeoPixel(machine.Pin(4), 44),
     neopixel.NeoPixel(machine.Pin(5), 26),
@@ -106,16 +106,14 @@ async def Main(mode):
     Clear()
     if (mode == 't'):
         await asyncio.gather(
-            Fade(np[0], {"start":0.6666666648, "end":0.833333331}, 0.6666666648, 1, 0.7843, 0.001, 0.005, "forward", 1)
-        )
-    elif (mode == 'r'):
-        await asyncio.gather(
-            OverlappingValues(np[0], 0, [(0, 0, 200), (200, 0, 200)], 0.05, "up")
+            Fade(np[0], {"start":0.6666666648, "end":0.833333331}, 0.6666666648, 1, 0.7843, 0.001, 0.005, "forward", 1),
+            Fade(np[1], {"start":0.6666666648, "end":0.833333331}, 0.6666666648, 1, 0.7843, 0.001, 0.005, "forward", 1),
+            Fade(np[2], {"start":0.6666666648, "end":0.833333331}, 0.6666666648, 1, 0.7843, 0.001, 0.005, "forward", 1),
+            Fade(np[3], {"start":0.6666666648, "end":0.833333331}, 0.6666666648, 1, 0.7843, 0.001, 0.005, "forward", 1),
+            Fade(np[4], {"start":0.6666666648, "end":0.833333331}, 0.6666666648, 1, 0.7843, 0.001, 0.005, "forward", 1)
         )
 Clear()
 while True:
     if poll_obj.poll(0):
         char = sys.stdin.read(1)
         asyncio.run(Main(char))
-# OverlappingValues(np[0], 0, [(0, 0, 200), (200, 0, 200)], 0.05, "up")
-# Fade(np[0], 0, 0.6666666648, 1, 0.7843, 0.6666666648, 0.833333331, 0.01, 0.05, "forward")
