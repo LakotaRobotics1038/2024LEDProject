@@ -106,14 +106,13 @@ async def Main(mode):
     Clear()
     if (mode == 't'):
         await asyncio.gather(
-            Fade(np[0], {"start":0.6666666648, "end":0.833333331}, 0.6666666648, 1, 0.7843, 0.001, 0.005, "forward", 1),
-            Fade(np[1], {"start":0.6666666648, "end":0.833333331}, 0.6666666648, 1, 0.7843, 0.001, 0.005, "forward", 1),
-            Fade(np[2], {"start":0.6666666648, "end":0.833333331}, 0.6666666648, 1, 0.7843, 0.001, 0.005, "forward", 1),
-            Fade(np[3], {"start":0.6666666648, "end":0.833333331}, 0.6666666648, 1, 0.7843, 0.001, 0.005, "forward", 1),
-            Fade(np[4], {"start":0.6666666648, "end":0.833333331}, 0.6666666648, 1, 0.7843, 0.001, 0.005, "forward", 1)
+            Fade(np[0], h={"start":0.6666666648, "end":0.833333331}, s=0.6666666648, v=1, currentH=0.7843, interval=0.001, delay=0.005, direction="forward", directionSwitchDelay=1),
+            Fade(np[1], h={"start":0.6666666648, "end":0.833333331}, s=0.6666666648, v=1, currentH=0.7843, interval=0.001, delay=0.005, direction="forward", directionSwitchDelay=1),
+            Fade(np[2], h={"start":0.6666666648, "end":0.833333331}, s=0.6666666648, v=1, currentH=0.7843, interval=0.001, delay=0.005, direction="forward", directionSwitchDelay=1),
+            Fade(np[3], h={"start":0.6666666648, "end":0.833333331}, s=0.6666666648, v=1, currentH=0.7843, interval=0.001, delay=0.005, direction="forward", directionSwitchDelay=1),
+            Fade(np[4], h={"start":0.6666666648, "end":0.833333331}, s=0.6666666648, v=1, currentH=0.7843, interval=0.001, delay=0.005, direction="forward", directionSwitchDelay=1)
         )
 Clear()
 while True:
     if poll_obj.poll(0):
         char = sys.stdin.read(1)
-        asyncio.run(Main(char))
