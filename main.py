@@ -1,118 +1,61 @@
 import machine
 import neopixel
-import asyncio
-import select
+import time
+import _thread
 import sys
 
-poll_obj = select.poll()
-poll_obj.register(sys.stdin, 1)
+class NeopixelController:
+    def __init__(self, pin_numbers: list[int], num_leds: list[int]) -> None:
+        if len(pin_numbers) != len(num_leds):
+            raise ValueError(f"pin_numbers and num_leds must have the same length. Current lengths are {len(pin_numbers)} and {len(num_leds)} respectively.")
+        self.leds = [neopixel.NeoPixel(machine.Pin(pin), num) for pin, num in zip(pin_numbers, num_leds)]
 
-np = [
-    neopixel.NeoPixel(machine.Pin(2), 26),
-    neopixel.NeoPixel(machine.Pin(3), 26),
-    neopixel.NeoPixel(machine.Pin(4), 44),
-    neopixel.NeoPixel(machine.Pin(5), 26),
-    neopixel.NeoPixel(machine.Pin(6), 12)
-]
-def Clear():
-    for i in range(len(np)):
-        for j in range(len(np[i])):
-            np[i][j] = (0, 0, 0)
-        np[i].write()
+    def clear(self) -> None:
+        for pixel in self.leds:
+            pixel.fill((0, 0, 0))
+            pixel.write()
 
-def HSVtoRGB(H, S, V):
-    if (S == 0):
-        R = V * 255
-        G = V * 255
-        B = V * 255
-    else:
-        var_h = H * 6
-        if (var_h == 6):
-            var_h = 0
-        var_i = int(var_h)
-        var_1 = V * (1 - S )
-        var_2 = V * (1 - S * (var_h - var_i))
-        var_3 = V * (1 - S * (1 - (var_h - var_i)))
+    def color_fade(self, color_1: tuple[int, int, int], color_2: tuple[int, int, int], mix: int, delay: float, current_character: str) -> None:
+        global character
+        for fade_step in range(mix + 1):
+            intermediate_color = tuple(int((1 - fade_step / mix) * rgb_1 + fade_step / mix * rgb_2) for rgb_1, rgb_2 in zip(color_1, color_2))
+            for led in self.leds:
+                led.fill(intermediate_color)
+                led.write()
+            time.sleep(delay)
+            if character != current_character:
+                break
 
-        if (var_i == 0):
-            var_r = V
-            var_g = var_3
-            var_b = var_1
-        elif (var_i == 1):
-            var_r = var_2
-            var_g = V
-            var_b = var_1
-        elif (var_i == 2):
-            var_r = var_1
-            var_g = V
-            var_b = var_3
-        elif (var_i == 3):
-            var_r = var_1
-            var_g = var_2
-            var_b = V
-        elif ( var_i == 4 ):
-            var_r = var_3
-            var_g = var_1
-            var_b = V
-        else:
-            var_r = V
-            var_g = var_1
-            var_b = var_2
+def buffer_stdin():
+    global character, terminate_thread
+    while terminate_thread != True:
+        recieved_input = sys.stdin.read(1)
+        if recieved_input != "\n":
+            character = recieved_input
 
-        R = var_r * 255
-        G = var_g * 255
-        B = var_b * 255
+np = NeopixelController(pin_numbers=[2, 3, 4, 5, 6], num_leds=[26, 26, 44, 26, 12])
+np.clear()
 
-        return (int(R), int(G), int(B))
+character = " "
+terminate_thread = False
 
-async def Fade(np, h, s, v, currentH, interval, delay, direction, directionSwitchDelay):
+buffer_stdin_thread = _thread.start_new_thread(buffer_stdin, ())
+
+try:
     while True:
-        if (currentH >= h["end"]):
-            direction = "backward"
-            await asyncio.sleep(directionSwitchDelay)
-        elif (currentH <= h["start"]):
-            direction = "forward"
-            await asyncio.sleep(directionSwitchDelay)
-      
-        for i in range(len(np)):
-            np[i] = HSVtoRGB(currentH, s, v)
-        np.write()
-        if (direction == "forward"):
-            currentH += interval
-        elif (direction == "backward"):
-            currentH -= interval
-        await asyncio.sleep(delay)
+        if character == "d":
+            np.color_fade(color_1=(0, 0, 200), color_2=(200, 0, 200), mix=250, delay=0.001, current_character="d")
+            np.color_fade(color_1=(200, 0, 200), color_2=(0, 0, 200), mix=250, delay=0.001, current_character="d")
+        elif character == "e":
+            np.color_fade(color_1=(255, 0, 0), color_2=(0, 255, 0), mix=375, delay=0.001, current_character="e")
+            np.color_fade(color_1=(0, 255, 0), color_2=(0, 0, 255), mix=375, delay=0.001, current_character="e")
+            np.color_fade(color_1=(0, 0, 255), color_2=(255, 0, 0), mix=375, delay=0.001, current_character="e")
+        elif character == "n":
+            np.color_fade(color_1=(255, 165, 0), color_2=(255, 165, 0), mix=1, delay=0.001, current_character="n")
+        elif character == "g":
+            np.color_fade(color_1=(0, 255, 0), color_2=(0, 255, 0), mix=1, delay=0.001, current_character="g")
+except KeyboardInterrupt:
+    terminate_thread = True
+    np.clear()
+    machine.reset()
 
-async def OverlappingValues(np, colList, individualDelay, direction):
-    while True:
-        for i in colList:
-            for j in range(len(np)):
-                if (direction == "up"):
-                    np[j] = i
-                elif (direction == "down"):
-                    np[len(np) - j - 1] = i
-                await asyncio.sleep(individualDelay)
-                np.write()
-
-async def Flashing(np, colList, delay):
-    while True:
-        for i in colList:
-            for j in range(len(np)):
-                np[j] = i
-                np.write()
-            await asyncio.sleep(delay)
-
-async def Main(mode):
-    Clear()
-    if (mode == 't'):
-        await asyncio.gather(
-            Fade(np[0], h={"start":0.6666666648, "end":0.833333331}, s=0.6666666648, v=1, currentH=0.7843, interval=0.001, delay=0.005, direction="forward", directionSwitchDelay=1),
-            Fade(np[1], h={"start":0.6666666648, "end":0.833333331}, s=0.6666666648, v=1, currentH=0.7843, interval=0.001, delay=0.005, direction="forward", directionSwitchDelay=1),
-            Fade(np[2], h={"start":0.6666666648, "end":0.833333331}, s=0.6666666648, v=1, currentH=0.7843, interval=0.001, delay=0.005, direction="forward", directionSwitchDelay=1),
-            Fade(np[3], h={"start":0.6666666648, "end":0.833333331}, s=0.6666666648, v=1, currentH=0.7843, interval=0.001, delay=0.005, direction="forward", directionSwitchDelay=1),
-            Fade(np[4], h={"start":0.6666666648, "end":0.833333331}, s=0.6666666648, v=1, currentH=0.7843, interval=0.001, delay=0.005, direction="forward", directionSwitchDelay=1)
-        )
-Clear()
-while True:
-    if poll_obj.poll(0):
-        char = sys.stdin.read(1)
