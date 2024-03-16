@@ -53,8 +53,7 @@ try:
         elif character == "n":
             np.color_fade(color_1=(255, 165, 0), color_2=(255, 165, 0), mix=1, delay=0.001, current_character="n")
         elif character == "g":
-            np.color_fade(color_1=(0, 255, 0), color_2=(0, 255, 0), mix=1, delay=0.001, current_character="g")
-            time.sleep(2)
+            np.color_fade(color_1=(0, 255, 0), color_2=(0, 255, 0), mix=200, delay=0.001, current_character="g")
             if character == "g":
                 character = "d"
 except KeyboardInterrupt:
