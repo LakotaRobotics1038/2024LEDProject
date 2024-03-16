@@ -1,8 +1,6 @@
 {
     "recommendations": [
-        "paulober.pico-w-go",
-        "ms-python.python",
-        "visualstudioexptteam.vscodeintellicode",
-        "ms-python.vscode-pylance"
+        "joedevivo.vscode-circuitpython",
+        "ms-vscode.vscode-serial-monitor"
     ]
 }
