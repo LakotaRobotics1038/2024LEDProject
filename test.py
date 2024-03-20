@@ -5,47 +5,50 @@ import usys
 import uselect
 
 class NeopixelController:
-    def __init__(self, pin_numbers: "list[int]", leds: "list[list[dict[str, int]]]") -> None:
-        if len(pin_numbers) != len(leds):
-            raise ValueError(f"Pin Numbers and LEDs must be the same length. Current lengths are {len(pin_numbers)} pin numbers and {len(leds)} LEDs.")
+    def __init__(self, pin_numbers: "list[int]", pin_counts: "list[int]", leds: "list[list[dict[str, int]]]") -> None:
+        if len(pin_numbers) != len(pin_counts):
+            raise ValueError(f"Pin Numbers and Pin Counts must be the same length. Current lengths are {len(pin_numbers)} pin numbers and {len(pin_counts)} LEDs.")
         self.leds = []
         self.led_starting_positions = []
-        for pin, strip in zip(pin_numbers, leds):
+        self.led_count = []
+        for pin, count in zip(pin_numbers, pin_counts):
+            self.leds.append(neopixel.NeoPixel(umachine.Pin(pin), count))
+        for strip in leds:
             for portion in strip:
-                self.leds.append(neopixel.NeoPixel(umachine.Pin(pin), portion["count"]))
                 self.led_starting_positions.append(portion["start"] - 1)
+                self.led_count.append(portion["count"] - 1)
 
     def clear(self) -> None:
         for led in self.leds:
             led.fill((0, 0, 0))
             led.write()
 
-    async def color_fade(self, strip: int, color_1: "tuple[int, int, int]", color_2: "tuple[int, int, int]", mix: int, delay: int) -> None:
+    async def color_fade(self, strip: int, color_1: "tuple[int, int, int]", color_2: "tuple[int, int, int]", mix: int, delay: float) -> None:
         while True:
             for fade_step in range(mix + 1):
                 intermediate_color = tuple(int((1 - fade_step / mix) * rgb_1 + fade_step / mix * rgb_2) for rgb_1, rgb_2 in zip(color_1, color_2))
-                for led in range(len(self.leds[strip - 1]) - self.led_starting_positions[strip - 1]):
+                for led in range(self.led_count[strip - 1] - self.led_starting_positions[strip - 1]):
                     self.leds[strip - 1][self.led_starting_positions[strip - 1] + led] = intermediate_color
                 self.leds[strip - 1].write()
-                await uasyncio.sleep(0.01)
+                await uasyncio.sleep(delay)
             for fade_step in range(mix + 1):
                 intermediate_color = tuple(int((1 - fade_step / mix) * rgb_2 + fade_step / mix * rgb_1) for rgb_1, rgb_2 in zip(color_1, color_2))
-                for led in range(len(self.leds[strip - 1]) - self.led_starting_positions[strip - 1]):
+                for led in range(self.led_count[strip - 1] - self.led_starting_positions[strip - 1]):
                     self.leds[strip - 1][self.led_starting_positions[strip - 1] + led] = intermediate_color
                 self.leds[strip - 1].write()
                 await uasyncio.sleep(delay)
 
-    async def rainbow(self, strip:int, mix: int, delay: int) -> None:
+    async def rainbow(self, strip: int, mix: int, delay: float) -> None:
         while True:
             for fade_step in range(mix + 1):
                 intermediate_color = tuple(int((1 - fade_step / mix) * rgb_1 + fade_step / mix * rgb_2) for rgb_1, rgb_2 in zip((255, 0, 0), (0, 255, 0)))
-                for led in range(len(self.leds[strip - 1]) - self.led_starting_positions[strip - 1]):
+                for led in range(self.led_count[strip - 1] - self.led_starting_positions[strip - 1]):
                     self.leds[strip - 1][self.led_starting_positions[strip - 1] + led] = intermediate_color
                 self.leds[strip - 1].write()
                 await uasyncio.sleep(delay)
             for fade_step in range(mix + 1):
                 intermediate_color = tuple(int((1 - fade_step / mix) * rgb_1 + fade_step / mix * rgb_2) for rgb_1, rgb_2 in zip((0, 255, 0), (0, 0, 255)))
-                for led in range(len(self.leds[strip - 1]) - self.led_starting_positions[strip - 1]):
+                for led in range(self.led_count[strip - 1] - self.led_starting_positions[strip - 1]):
                     self.leds[strip - 1][self.led_starting_positions[strip - 1] + led] = intermediate_color
                 self.leds[strip - 1].write()
                 await uasyncio.sleep(delay)
@@ -65,7 +68,7 @@ class NeopixelController:
             if exit_after_delay:
                 return
 
-    async def racing(self, strip: int, baseColor: "tuple[int, int, int]", racingColor: "tuple[int, int, int]", length: int, delay: int) -> None:
+    async def racing(self, strip: int, baseColor: "tuple[int, int, int]", racingColor: "tuple[int, int, int]", length: int, delay: float) -> None:
         while True:
             for led in range(self.led_starting_positions[strip - 1], len(self.leds[strip - 1])):
                 self.leds[strip - 1][led] = racingColor
@@ -142,7 +145,7 @@ async def set_mode():
                     tasks.update({"G1":uasyncio.create_task(np.static_color(strip=1, color=(0, 255, 0), delay=2, exit_after_delay=True))})
         await uasyncio.sleep(0.1)
 
-np = NeopixelController(pin_numbers=[2, 3, 4, 5], leds=[[{"start":1, "count":10}, {"start":11, "count":20}, {"start":21, "count":26}], [{"start":0, "count":25}], [{"start":0, "count":11}], [{"start":0, "count":25}]])
+np = NeopixelController(pin_numbers=[2, 3, 4, 5], pin_counts=[26, 44, 12, 26], leds=[[{"start":1, "count":10}, {"start":11, "count":20}, {"start":21, "count":26}], [{"start":1, "count":44}], [{"start":1, "count":12}], [{"start":1, "count":26}]])
 tasks = {"1":"", "2":"", "3":"", "4":"", "5":"", "6":""}
 
 try:
