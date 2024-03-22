@@ -79,9 +79,9 @@ async def set_mode() -> None:
     
     while True:
         if select_poll.poll(0):
-            recieved_input = usys.stdin.read(1)
-            if recieved_input != "\n":
-                character = recieved_input
+            received_input = usys.stdin.read(1)
+            if received_input != "\n":
+                character = received_input
         for count, task in enumerate(tasks):
             if task[0] != character and mode[character][count]:
                 try:
