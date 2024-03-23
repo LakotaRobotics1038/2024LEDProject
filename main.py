@@ -65,11 +65,6 @@ class NeopixelController:
                     self.leds[self.led_strip[strip - 1]][self.led_count[strip - 1] - self.led_starting_positions[strip - 1] + led - length] = baseColor
                 self.leds[self.led_strip[strip - 1]].write()
                 await uasyncio.sleep(delay)
-    
-
-async def reset_mode(delay: int) -> bool:
-    await uasyncio.sleep(delay)
-    return True
 
 async def set_mode() -> None:
     character = "D"
