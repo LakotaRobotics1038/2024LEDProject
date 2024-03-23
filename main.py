@@ -4,7 +4,6 @@ import neopixel
 import usys
 import uselect
 
-
 class NeopixelController:
 
     def __init__(self, pin_numbers: "list[int]", pin_counts: "list[int]", leds: "list[list[dict[str, int]]]") -> None:
@@ -70,11 +69,18 @@ async def set_mode() -> None:
     select_poll.register(usys.stdin, 1)
     tasks = [["", None], ["", None], ["", None], ["", None], ["", None], ["", None]]
     mode = {
-        "D":[True, True, True, True, True, True],
-        "E":[True, True, True, True, True, True],
-        "N":[False, True, False, True, True, True],
-        "Q":[True, True, False, False, False, False],
-        "G":[True, True, True, True, True, True]
+        "D":["Team Colors", "Team Colors", "Team Colors", "Team Colors", "Team Colors", "Team Colors"],
+        "E":["Rainbow", "Rainbow", "Rainbow", "Rainbow", "Rainbow", "Rainbow"],
+        "N":["", "Detected Note", "", "Detected Note", "Detected Note", "Detected Note"],
+        "G":["Possessed Note", "Possessed Note", "Possessed Note", "Possessed Note", "Possessed Note", "Possessed Note"],
+        "Q":["Racing", "Racing", "", "", "", ""]
+    }
+    function = {
+        "Team Colors":"uasyncio.create_task(np.team_colors(strip=count + 1, start_color=(0, 0, 200), end_color=(200, 0, 200), mix=128, delay=0.01))",
+        "Rainbow":"uasyncio.create_task(np.rainbow(strip=count + 1, mix=128, delay=0.01))",
+        "Detected Note":"uasyncio.create_task(np.static_color(strip=count + 1, color=(255, 40, 0), delay=1))",
+        "Possessed Note":"uasyncio.create_task(np.static_color(strip=count + 1, color=(0, 255, 0), delay=2))",
+        "Racing":"uasyncio.create_task(np.racing(strip=count + 1, baseColor=(0, 0, 200), racingColor=(200, 0, 200), length=3, delay=0.1))"
     }
     
     while True:
@@ -83,21 +89,12 @@ async def set_mode() -> None:
             if received_input != "\n":
                 character = received_input
         for count, task in enumerate(tasks):
-            if task[0] != character and mode[character][count]:
+            if task[0] != character and mode[character][count] != "":
                 try:
                     task[1].cancel()
                 except:
                     pass
-                if character == "D":
-                    tasks[count] = [character, uasyncio.create_task(np.team_colors(strip=count + 1, start_color=(0, 0, 200), end_color=(200, 0, 200), mix=128, delay=0.01))]
-                elif character == "E":
-                    tasks[count] = [character, uasyncio.create_task(np.rainbow(strip=count + 1, mix=128, delay=0.01))]
-                elif character == "N":
-                    tasks[count] = [character, uasyncio.create_task(np.static_color(strip=count + 1, color=(255, 40, 0), delay=1))]
-                elif character == "Q":
-                    tasks[count] = [character, uasyncio.create_task(np.racing(strip=count + 1, baseColor=(0, 0, 200), racingColor=(200, 0, 200), length=3, delay=0.1))]
-                elif character == "G":
-                    tasks[count] = [character, uasyncio.create_task(np.static_color(strip=count + 1, color=(0, 255, 0), delay=2))]
+                tasks[count] = [character, eval(function[mode[character][count]], globals(), {"count":count})]
         await uasyncio.sleep(0.01)
 
 np = NeopixelController(pin_numbers=[2, 3, 4, 5], pin_counts=[26, 44, 12, 26], leds=[
