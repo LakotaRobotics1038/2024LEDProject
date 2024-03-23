@@ -4,6 +4,7 @@ import neopixel
 import usys
 import uselect
 
+
 class NeopixelController:
 
     def __init__(self, pin_numbers: "list[int]", pin_counts: "list[int]", leds: "list[list[dict[str, int]]]") -> None:
@@ -25,7 +26,7 @@ class NeopixelController:
         for led in self.leds:
             led.fill((0, 0, 0))
             led.write()
-    
+
     async def color_fade(self, strip: int, start_color: "tuple[int, int, int]", end_color: "tuple[int, int, int]", mix: int, delay: float) -> None:
         for fade_step in range(mix + 1):
             intermediate_color = tuple(int((1 - fade_step / mix) * rgb_1 + fade_step / mix * rgb_2) for rgb_1, rgb_2 in zip(start_color, end_color))
@@ -46,11 +47,13 @@ class NeopixelController:
             await np.color_fade(strip, (0, 0, 255), (255, 0, 0), mix, delay)
 
     async def static_color(self, strip: int, color: "tuple[int, int, int]", delay: int) -> None:
-        while True:
-            for led in range(self.led_count[strip - 1] - self.led_starting_positions[strip - 1]):
-                self.leds[self.led_strip[strip - 1]][self.led_starting_positions[strip - 1] + led] = color
+        for led in range(self.led_count[strip - 1] - self.led_starting_positions[strip - 1]):
+            self.leds[self.led_strip[strip - 1]][self.led_starting_positions[strip - 1] + led] = color
             self.leds[self.led_strip[strip - 1]].write()
-            await uasyncio.sleep(delay)
+        await uasyncio.sleep(delay)
+        while True:
+            await np.color_fade(strip, start_color=(0, 0, 200), end_color=(200, 0, 200), mix=128, delay=0.01)
+            await np.color_fade(strip, start_color=(200, 0, 200), end_color=(0, 0, 200), mix=128, delay=0.01)
 
     async def racing(self, strip: int, baseColor: "tuple[int, int, int]", racingColor: "tuple[int, int, int]", length: int, delay: float) -> None:
         while True:
@@ -62,18 +65,24 @@ class NeopixelController:
                     self.leds[self.led_strip[strip - 1]][self.led_count[strip - 1] - self.led_starting_positions[strip - 1] + led - length] = baseColor
                 self.leds[self.led_strip[strip - 1]].write()
                 await uasyncio.sleep(delay)
+    
+
+async def reset_mode(delay: int) -> bool:
+    await uasyncio.sleep(delay)
+    return True
 
 async def set_mode() -> None:
     character = "D"
     select_poll = uselect.poll()
     select_poll.register(usys.stdin, 1)
-    tasks = [["", None], ["", None], ["", None], ["", None], ["", None], ["", None]]
+    tasks = []
+    for _ in np.leds:
+        tasks.append(["", None])
     mode = {
-        "D":["Team Colors", "Team Colors", "Team Colors", "Team Colors", "Team Colors", "Team Colors"],
-        "E":["Rainbow", "Rainbow", "Rainbow", "Rainbow", "Rainbow", "Rainbow"],
-        "N":["", "Detected Note", "", "Detected Note", "Detected Note", "Detected Note"],
-        "G":["Possessed Note", "Possessed Note", "Possessed Note", "Possessed Note", "Possessed Note", "Possessed Note"],
-        "Q":["Racing", "Racing", "", "", "", ""]
+        "D":["Racing", "Team Colors", "Racing", "Team Colors", "Team Colors"],
+        "E":["Rainbow", "Rainbow", "Rainbow", "Rainbow", "Rainbow"],
+        "N":["Detected Note", "", "Detected Note", "", ""],
+        "G":["Possessed Note", "", "Possessed Note", "", ""]
     }
     function = {
         "Team Colors":"uasyncio.create_task(np.team_colors(strip=count + 1, start_color=(0, 0, 200), end_color=(200, 0, 200), mix=128, delay=0.01))",
@@ -82,7 +91,7 @@ async def set_mode() -> None:
         "Possessed Note":"uasyncio.create_task(np.static_color(strip=count + 1, color=(0, 255, 0), delay=2))",
         "Racing":"uasyncio.create_task(np.racing(strip=count + 1, baseColor=(0, 0, 200), racingColor=(200, 0, 200), length=3, delay=0.1))"
     }
-    
+
     while True:
         if select_poll.poll(0):
             received_input = usys.stdin.read(1)
@@ -97,9 +106,9 @@ async def set_mode() -> None:
                 tasks[count] = [character, eval(function[mode[character][count]], globals(), {"count":count})]
         await uasyncio.sleep(0.01)
 
-np = NeopixelController(pin_numbers=[2, 3, 4, 5], pin_counts=[26, 44, 12, 26], leds=[
-    [{"start":1, "count":10}, {"start":11, "count":20}, {"start":21, "count":26}],
-    [{"start":1, "count":44}],
+np = NeopixelController(pin_numbers=[2, 3, 4, 5], pin_counts=[44, 26, 12, 26], leds=[
+    [{"start":1, "count":26}, {"start":27, "count":44}],
+    [{"start":1, "count":26}],
     [{"start":1, "count":12}],
     [{"start":1, "count":26}]
 ])
