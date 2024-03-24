@@ -3,7 +3,7 @@ import umachine
 import neopixel
 import usys
 import uselect
-
+import utime
 
 class NeopixelController:
 
@@ -57,7 +57,12 @@ class NeopixelController:
             self.leds[self.led_strip[strip]].write()
         await uasyncio.sleep(delay)
         if kill:
+            try:
+                tasks[strip][0].cancel()
+            except:
+                pass
             tasks[strip] = [character, function[mode[kill_mode][strip]]]
+            print(tasks[strip])
 
                 
 
@@ -125,6 +130,7 @@ try:
     uasyncio.run(set_mode())
 except Exception as e:
     usys.print_exception(e)
+    utime.sleep(1)
 finally:
     np.clear()
     umachine.reset()
