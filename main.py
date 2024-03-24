@@ -95,6 +95,7 @@ async def set_mode() -> None:
                 tasks[count] = [character, eval(function[mode[character][count]], globals(), {"count":count})]
         await uasyncio.sleep(0.01)
 
+#This is where the magic happens 
 np = NeopixelController(pin_numbers=[2, 3, 4, 5], pin_counts=[44, 26, 12, 26], leds=[
     [{"start":1, "count":26}, {"start":27, "count":44}],
     [{"start":1, "count":26}],
