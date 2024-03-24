@@ -30,9 +30,9 @@ class NeopixelController:
     async def color_fade(self, strip: int, start_color: "tuple[int, int, int]", end_color: "tuple[int, int, int]", mix: int, delay: float) -> None:
         for fade_step in range(mix + 1):
             intermediate_color = tuple(int((1 - fade_step / mix) * rgb_1 + fade_step / mix * rgb_2) for rgb_1, rgb_2 in zip(start_color, end_color))
-            for led in range(self.led_count[strip - 1] - self.led_starting_positions[strip - 1]):
-                self.leds[self.led_strip[strip - 1]][self.led_starting_positions[strip - 1] + led] = intermediate_color
-            self.leds[self.led_strip[strip - 1]].write()
+            for led in range(self.led_count[strip] - self.led_starting_positions[strip]):
+                self.leds[self.led_strip[strip]][self.led_starting_positions[strip] + led] = intermediate_color
+            self.leds[self.led_strip[strip]].write()
             await uasyncio.sleep(delay)
 
     async def team_colors(self, strip: int, start_color: "tuple[int, int, int]", end_color: "tuple[int, int, int]", mix: int, delay: float) -> None:
@@ -46,46 +46,40 @@ class NeopixelController:
             await np.color_fade(strip, (0, 255, 0), (0, 0, 255), mix, delay)
             await np.color_fade(strip, (0, 0, 255), (255, 0, 0), mix, delay)
 
-    async def static_color(self, strip: int, color: "tuple[int, int, int]", delay: int) -> None:
-        for led in range(self.led_count[strip - 1] - self.led_starting_positions[strip - 1]):
-            self.leds[self.led_strip[strip - 1]][self.led_starting_positions[strip - 1] + led] = color
-            self.leds[self.led_strip[strip - 1]].write()
+    async def static_color(self, strip: int, color: "tuple[int, int, int]", delay: int, kill: bool, kill_mode: str) -> None:
+        global character
+        global tasks
+        global mode
+        global function
+
+        for led in range(self.led_count[strip] - self.led_starting_positions[strip]):
+            self.leds[self.led_strip[strip]][self.led_starting_positions[strip] + led] = color
+            self.leds[self.led_strip[strip]].write()
         await uasyncio.sleep(delay)
-        while True:
-            await np.color_fade(strip, start_color=(0, 0, 200), end_color=(200, 0, 200), mix=128, delay=0.01)
-            await np.color_fade(strip, start_color=(200, 0, 200), end_color=(0, 0, 200), mix=128, delay=0.01)
+        if kill:
+            tasks[strip] = [character, function[mode[kill_mode][strip]]]
+
+                
 
     async def racing(self, strip: int, baseColor: "tuple[int, int, int]", racingColor: "tuple[int, int, int]", length: int, delay: float) -> None:
         while True:
-            for led in range(self.led_starting_positions[strip - 1], self.led_count[strip - 1]):
-                self.leds[self.led_strip[strip - 1]][led] = racingColor
-                if led - length >= self.led_starting_positions[strip - 1]:
-                    self.leds[self.led_strip[strip - 1]][led - length] = baseColor
-                if led - length < self.led_starting_positions[strip - 1]:
-                    self.leds[self.led_strip[strip - 1]][self.led_count[strip - 1] - self.led_starting_positions[strip - 1] + led - length] = baseColor
-                self.leds[self.led_strip[strip - 1]].write()
+            for led in range(self.led_starting_positions[strip], self.led_count[strip]):
+                self.leds[self.led_strip[strip]][led] = racingColor
+                if led - length >= self.led_starting_positions[strip]:
+                    self.leds[self.led_strip[strip]][led - length] = baseColor
+                if led - length < self.led_starting_positions[strip]:
+                    self.leds[self.led_strip[strip]][self.led_count[strip] - self.led_starting_positions[strip] + led - length] = baseColor
+                self.leds[self.led_strip[strip]].write()
                 await uasyncio.sleep(delay)
 
 async def set_mode() -> None:
-    character = "D"
+    global character
+    global tasks
+    global mode
+    global function
+
     select_poll = uselect.poll()
     select_poll.register(usys.stdin, 1)
-    tasks = []
-    for _ in np.leds:
-        tasks.append(["", None])
-    mode = {
-        "D":["Racing", "Team Colors", "Racing", "Team Colors", "Team Colors"],
-        "E":["Rainbow", "Rainbow", "Rainbow", "Rainbow", "Rainbow"],
-        "N":["Detected Note", "", "Detected Note", "", ""],
-        "G":["Possessed Note", "", "Possessed Note", "", ""]
-    }
-    function = {
-        "Team Colors":"uasyncio.create_task(np.team_colors(strip=count + 1, start_color=(0, 0, 200), end_color=(200, 0, 200), mix=128, delay=0.01))",
-        "Rainbow":"uasyncio.create_task(np.rainbow(strip=count + 1, mix=128, delay=0.01))",
-        "Detected Note":"uasyncio.create_task(np.static_color(strip=count + 1, color=(255, 40, 0), delay=1))",
-        "Possessed Note":"uasyncio.create_task(np.static_color(strip=count + 1, color=(0, 255, 0), delay=2))",
-        "Racing":"uasyncio.create_task(np.racing(strip=count + 1, baseColor=(0, 0, 200), racingColor=(200, 0, 200), length=3, delay=0.1))"
-    }
 
     while True:
         if select_poll.poll(0):
@@ -107,6 +101,24 @@ np = NeopixelController(pin_numbers=[2, 3, 4, 5], pin_counts=[44, 26, 12, 26], l
     [{"start":1, "count":12}],
     [{"start":1, "count":26}]
 ])
+
+character = "D"
+tasks = []
+for _ in np.leds:
+    tasks.append(["", None])
+mode = {
+    "D":["Racing", "Team Colors", "Racing", "Team Colors", "Team Colors"],
+    "E":["Rainbow", "Rainbow", "Rainbow", "Rainbow", "Rainbow"],
+    "N":["Detected Note", "", "Detected Note", "", ""],
+    "G":["Possessed Note", "", "Possessed Note", "", ""]
+}
+function = {
+    "Team Colors":"uasyncio.create_task(np.team_colors(strip=count, start_color=(0, 0, 200), end_color=(200, 0, 200), mix=128, delay=0.01))",
+    "Rainbow":"uasyncio.create_task(np.rainbow(strip=count, mix=128, delay=0.01))",
+    "Detected Note":"uasyncio.create_task(np.static_color(strip=count, color=(255, 40, 0), delay=1, kill=False, kill_mode=''))",
+    "Possessed Note":"uasyncio.create_task(np.static_color(strip=count, color=(0, 255, 0), delay=2, kill=True, kill_mode='D'))",
+    "Racing":"uasyncio.create_task(np.racing(strip=count, baseColor=(0, 0, 200), racingColor=(200, 0, 200), length=3, delay=0.1))"
+}
 
 
 try:
