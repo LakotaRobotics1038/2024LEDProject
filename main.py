@@ -36,15 +36,13 @@ class NeopixelController:
             await uasyncio.sleep(delay)
 
     async def team_colors(self, strip: int, start_color: "tuple[int, int, int]", end_color: "tuple[int, int, int]", mix: int, delay: float) -> None:
-        while True:
-            await np.color_fade(strip, start_color, end_color, mix, delay)
-            await np.color_fade(strip, end_color, start_color, mix, delay)
+        await np.color_fade(strip, start_color, end_color, mix, delay)
+        await np.color_fade(strip, end_color, start_color, mix, delay)
 
     async def rainbow(self, strip: int, mix: int, delay: float) -> None:
-        while True:
-            await np.color_fade(strip, (255, 0, 0), (0, 255, 0), mix, delay)
-            await np.color_fade(strip, (0, 255, 0), (0, 0, 255), mix, delay)
-            await np.color_fade(strip, (0, 0, 255), (255, 0, 0), mix, delay)
+        await np.color_fade(strip, (255, 0, 0), (0, 255, 0), mix, delay)
+        await np.color_fade(strip, (0, 255, 0), (0, 0, 255), mix, delay)
+        await np.color_fade(strip, (0, 0, 255), (255, 0, 0), mix, delay)
 
     async def static_color(self, strip: int, color: "tuple[int, int, int]", delay: int, kill: bool, kill_mode: str) -> None:
         global character
@@ -57,25 +55,24 @@ class NeopixelController:
             self.leds[self.led_strip[strip]].write()
         await uasyncio.sleep(delay)
         if kill:
+            tasks[strip] = [character, function[mode[kill_mode][strip]]]
+            print(tasks)
             try:
                 tasks[strip][0].cancel()
             except:
                 pass
-            tasks[strip] = [character, function[mode[kill_mode][strip]]]
-            print(tasks[strip])
 
                 
 
     async def racing(self, strip: int, baseColor: "tuple[int, int, int]", racingColor: "tuple[int, int, int]", length: int, delay: float) -> None:
-        while True:
-            for led in range(self.led_starting_positions[strip], self.led_count[strip]):
-                self.leds[self.led_strip[strip]][led] = racingColor
-                if led - length >= self.led_starting_positions[strip]:
-                    self.leds[self.led_strip[strip]][led - length] = baseColor
-                if led - length < self.led_starting_positions[strip]:
-                    self.leds[self.led_strip[strip]][self.led_count[strip] - self.led_starting_positions[strip] + led - length] = baseColor
-                self.leds[self.led_strip[strip]].write()
-                await uasyncio.sleep(delay)
+        for led in range(self.led_starting_positions[strip], self.led_count[strip]):
+            self.leds[self.led_strip[strip]][led] = racingColor
+            if led - length >= self.led_starting_positions[strip]:
+                self.leds[self.led_strip[strip]][led - length] = baseColor
+            if led - length < self.led_starting_positions[strip]:
+                self.leds[self.led_strip[strip]][self.led_count[strip] - self.led_starting_positions[strip] + led - length] = baseColor
+            self.leds[self.led_strip[strip]].write()
+            await uasyncio.sleep(delay)
 
 async def set_mode() -> None:
     global character
@@ -97,7 +94,11 @@ async def set_mode() -> None:
                     task[1].cancel()
                 except:
                     pass
-                tasks[count] = [character, eval(function[mode[character][count]], globals(), {"count":count})]
+                try:
+                    if task[1] == None or task[1].done():
+                        tasks[count] = [character, eval(function[mode[character][count]], globals(), {"count":count})]
+                except:
+                    pass
         await uasyncio.sleep(0.01)
 
 np = NeopixelController(pin_numbers=[2, 3, 4, 5], pin_counts=[44, 26, 12, 26], leds=[
