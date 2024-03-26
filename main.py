@@ -4,6 +4,8 @@ import neopixel
 import usys
 import uselect
 import utime
+import micropython
+import gc
 
 
 class NeopixelController:
@@ -66,7 +68,7 @@ async def set_mode() -> None:
     global function
 
     select_poll = uselect.poll()
-    select_poll.register(usys.stdin, 1)
+    select_poll.register(usys.stdin, uselect.POLLIN)
 
     while True:
         if select_poll.poll(0):
@@ -82,6 +84,8 @@ async def set_mode() -> None:
                 tasks[count] = [character, eval(function[mode[character][count]], globals(), {"count":count})]
         await uasyncio.sleep(0.01)
 
+gc.enable()
+
 np = NeopixelController(pin_numbers=[2, 3, 4, 5], pin_counts=[44, 26, 12, 26], leds=[
     [{"start":1, "count":26}, {"start":27, "count":44}],
     [{"start":1, "count":26}],
@@ -94,17 +98,17 @@ tasks = []
 for _ in np.leds:
     tasks.append(["", None])
 mode = {
-    "D":["Racing", "Team Colors", "Racing", "Team Colors", "Team Colors"],
-    "E":["Rainbow", "Rainbow", "Rainbow", "Rainbow", "Rainbow"],
-    "N":["Detected Note", "", "Detected Note", "", ""],
-    "G":["Possessed Note", "", "Possessed Note", "", ""]
+    "D": ["Racing", "Team Colors", "Racing", "Team Colors", "Team Colors"],
+    "E": ["Rainbow", "Rainbow", "Rainbow", "Rainbow", "Rainbow"],
+    "N": ["Detected Note", "", "Detected Note", "", ""],
+    "G": ["Possessed Note", "", "Possessed Note", "", ""]
 }
 function = {
-    "Team Colors":"uasyncio.create_task(np.color_fade(strip=count, colors=[(0, 0, 200), (200, 0, 200)], mix=128, delay=0.01))",
-    "Rainbow":"uasyncio.create_task(np.color_fade(strip=count, colors=[(255, 0, 0), (0, 255, 0), (0, 0, 255)], mix=128, delay=0.01))",
-    "Detected Note":"uasyncio.create_task(np.static_color(strip=count, color=(255, 40, 0), delay=1, kill=False, kill_mode=''))",
-    "Possessed Note":"uasyncio.create_task(np.static_color(strip=count, color=(0, 255, 0), delay=2, kill=True, kill_mode='D'))",
-    "Racing":"uasyncio.create_task(np.racing(strip=count, baseColor=(0, 0, 200), racingColor=(200, 0, 200), length=3, delay=0.1))"
+    "Team Colors": micropython.const("uasyncio.create_task(np.color_fade(strip=count, colors=[(0, 0, 200), (200, 0, 200)], mix=128, delay=0.01))"),
+    "Rainbow": micropython.const("uasyncio.create_task(np.color_fade(strip=count, colors=[(255, 0, 0), (0, 255, 0), (0, 0, 255)], mix=128, delay=0.01))"),
+    "Detected Note": micropython.const("uasyncio.create_task(np.static_color(strip=count, color=(255, 40, 0), delay=1, kill=False, kill_mode=''))"),
+    "Possessed Note": micropython.const("uasyncio.create_task(np.static_color(strip=count, color=(0, 255, 0), delay=2, kill=True, kill_mode='D'))"),
+    "Racing": micropython.const("uasyncio.create_task(np.racing(strip=count, baseColor=(0, 0, 200), racingColor=(200, 0, 200), length=3, delay=0.1))")
 }
 
 
@@ -117,4 +121,4 @@ finally:
     for led in np.leds:
         led.fill((0, 0, 0))
         led.write()
-    umachine.reset()
+    umachine.soft_reset()
