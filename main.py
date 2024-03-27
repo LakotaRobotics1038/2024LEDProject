@@ -27,7 +27,7 @@ class NeopixelController:
 
     async def color_fade(self, strip: int, colors: "list[tuple[int, int, int]]", mix: int, delay: float) -> None:
         while True:
-            for count, _ in enumerate(colors):
+            for count in range(len(colors)):
                 for fade_step in range(mix + 1):
                     intermediate_color = tuple(int((1 - fade_step / mix) * rgb_1 + fade_step / mix * rgb_2) for rgb_1, rgb_2 in zip(colors[count], colors[count + 1] if len(colors) > count + 1 else colors[0]))
                     for led in range(self.led_count[strip] - self.led_starting_positions[strip]):
