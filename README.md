@@ -16,7 +16,7 @@ The LED project for FRC team 1038
 
 The program provides 4 modes that are able to be changed through a serial interface.
 
-* Disabled (d) causes an alternating blue and purple color.
-* E-Stop (e) causes a cycling rainbow color.
-* When the robot sees a node (n), it causes a static orange color.
-* When the robot picks up a node (g), it causes a static green color for 2 seconds and after, resets to the default value.
+* Disabled (`D`) causes an alternating blue and purple color.
+* E-Stop (`E`) causes a cycling rainbow color.
+* When the robot sees a node (`N`), it causes a static orange color.
+* When the robot picks up a node (`G`), it causes a static green color for 2 seconds and after, resets to the default value.
