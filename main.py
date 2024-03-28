@@ -1,118 +1,124 @@
-import machine
+import uasyncio
+import umachine
 import neopixel
-import asyncio
-import select
-import sys
+import usys
+import uselect
+import utime
+import micropython
+import gc
 
-poll_obj = select.poll()
-poll_obj.register(sys.stdin, 1)
 
-np = [
-    neopixel.NeoPixel(machine.Pin(2), 26),
-    neopixel.NeoPixel(machine.Pin(3), 26),
-    neopixel.NeoPixel(machine.Pin(4), 44),
-    neopixel.NeoPixel(machine.Pin(5), 26),
-    neopixel.NeoPixel(machine.Pin(6), 12)
-]
-def Clear():
-    for i in range(len(np)):
-        for j in range(len(np[i])):
-            np[i][j] = (0, 0, 0)
-        np[i].write()
+class NeopixelController:
 
-def HSVtoRGB(H, S, V):
-    if (S == 0):
-        R = V * 255
-        G = V * 255
-        B = V * 255
-    else:
-        var_h = H * 6
-        if (var_h == 6):
-            var_h = 0
-        var_i = int(var_h)
-        var_1 = V * (1 - S )
-        var_2 = V * (1 - S * (var_h - var_i))
-        var_3 = V * (1 - S * (1 - (var_h - var_i)))
+    def __init__(self, pin_numbers: "list[int]", pin_counts: "list[int]", leds: "list[list[dict[str, int]]]") -> None:
+        if len(pin_numbers) != len(pin_counts):
+            raise ValueError(f"Pin Numbers and Pin Counts must be the same length. Current lengths are {len(pin_numbers)} pin numbers and {len(pin_counts)} LEDs.")
+        self.leds = []
+        self.led_starting_positions = []
+        self.led_count = []
+        self.led_strip = []
+        for pin, count in zip(pin_numbers, pin_counts):
+            self.leds.append(neopixel.NeoPixel(umachine.Pin(pin), count))
+        for count, strip in enumerate(leds):
+            for portion in strip:
+                self.led_strip.append(count)
+                self.led_starting_positions.append(portion["start"] - 1)
+                self.led_count.append(portion["count"])
 
-        if (var_i == 0):
-            var_r = V
-            var_g = var_3
-            var_b = var_1
-        elif (var_i == 1):
-            var_r = var_2
-            var_g = V
-            var_b = var_1
-        elif (var_i == 2):
-            var_r = var_1
-            var_g = V
-            var_b = var_3
-        elif (var_i == 3):
-            var_r = var_1
-            var_g = var_2
-            var_b = V
-        elif ( var_i == 4 ):
-            var_r = var_3
-            var_g = var_1
-            var_b = V
-        else:
-            var_r = V
-            var_g = var_1
-            var_b = var_2
+    async def color_fade(self, strip: int, colors: "list[tuple[int, int, int]]", mix: int, delay: float) -> None:
+        while True:
+            for count in range(len(colors)):
+                for fade_step in range(mix + 1):
+                    intermediate_color = tuple(int((1 - fade_step / mix) * rgb_1 + fade_step / mix * rgb_2) for rgb_1, rgb_2 in zip(colors[count], colors[count + 1] if len(colors) > count + 1 else colors[0]))
+                    for led in range(self.led_count[strip] - self.led_starting_positions[strip]):
+                        self.leds[self.led_strip[strip]][self.led_starting_positions[strip] + led] = intermediate_color
+                    self.leds[self.led_strip[strip]].write()
+                    await uasyncio.sleep(delay)
 
-        R = var_r * 255
-        G = var_g * 255
-        B = var_b * 255
+    async def static_color(self, strip: int, color: "tuple[int, int, int]", delay: int, kill: bool, kill_mode: str) -> None:
+        global character
+        global tasks
+        global mode
+        global function
 
-        return (int(R), int(G), int(B))
+        for led in range(self.led_count[strip] - self.led_starting_positions[strip]):
+            self.leds[self.led_strip[strip]][self.led_starting_positions[strip] + led] = color
+            self.leds[self.led_strip[strip]].write()
+        await uasyncio.sleep(delay)
+        if kill:
+            tasks[strip] = [character, eval(function[mode[kill_mode][strip]], globals(), {"count": strip})]
 
-async def Fade(np, h, s, v, currentH, interval, delay, direction, directionSwitchDelay):
+    async def racing(self, strip: int, baseColor: "tuple[int, int, int]", racingColor: "tuple[int, int, int]", length: int, delay: float) -> None:
+        for led in range(self.led_starting_positions[strip], self.led_count[strip]):
+            self.leds[self.led_strip[strip]][led] = baseColor
+        while True:
+            for led in range(self.led_starting_positions[strip], self.led_count[strip]):
+                self.leds[self.led_strip[strip]][led] = racingColor
+                if led - length >= self.led_starting_positions[strip]:
+                    self.leds[self.led_strip[strip]][led - length] = baseColor
+                if led - length < self.led_starting_positions[strip]:
+                    self.leds[self.led_strip[strip]][self.led_count[strip] - self.led_starting_positions[strip] + led - length] = baseColor
+                self.leds[self.led_strip[strip]].write()
+                await uasyncio.sleep(delay)
+
+async def set_mode() -> None:
+    global character
+    global tasks
+    global mode
+    global function
+
+    select_poll = uselect.poll()
+    select_poll.register(usys.stdin, uselect.POLLIN)
+
     while True:
-        if (currentH >= h["end"]):
-            direction = "backward"
-            await asyncio.sleep(directionSwitchDelay)
-        elif (currentH <= h["start"]):
-            direction = "forward"
-            await asyncio.sleep(directionSwitchDelay)
-      
-        for i in range(len(np)):
-            np[i] = HSVtoRGB(currentH, s, v)
-        np.write()
-        if (direction == "forward"):
-            currentH += interval
-        elif (direction == "backward"):
-            currentH -= interval
-        await asyncio.sleep(delay)
+        if select_poll.poll(0):
+            received_input = usys.stdin.read(1)
+            if received_input != "\n":
+                character = received_input
+        for count, task in enumerate(tasks):
+            if task[0] != character and mode[character][count] != "":
+                try:
+                    task[1].cancel()
+                except:
+                    pass
+                tasks[count] = [character, eval(function[mode[character][count]], globals(), {"count":count})]
+        await uasyncio.sleep(0.01)
 
-async def OverlappingValues(np, colList, individualDelay, direction):
-    while True:
-        for i in colList:
-            for j in range(len(np)):
-                if (direction == "up"):
-                    np[j] = i
-                elif (direction == "down"):
-                    np[len(np) - j - 1] = i
-                await asyncio.sleep(individualDelay)
-                np.write()
+gc.enable()
 
-async def Flashing(np, colList, delay):
-    while True:
-        for i in colList:
-            for j in range(len(np)):
-                np[j] = i
-                np.write()
-            await asyncio.sleep(delay)
+np = NeopixelController(pin_numbers=[2, 3, 4, 5], pin_counts=[44, 26, 12, 26], leds=[
+    [{"start":1, "count":26}, {"start":27, "count":44}],
+    [{"start":1, "count":26}],
+    [{"start":1, "count":12}],
+    [{"start":1, "count":26}]
+])
 
-async def Main(mode):
-    Clear()
-    if (mode == 't'):
-        await asyncio.gather(
-            Fade(np[0], h={"start":0.6666666648, "end":0.833333331}, s=0.6666666648, v=1, currentH=0.7843, interval=0.001, delay=0.005, direction="forward", directionSwitchDelay=1),
-            Fade(np[1], h={"start":0.6666666648, "end":0.833333331}, s=0.6666666648, v=1, currentH=0.7843, interval=0.001, delay=0.005, direction="forward", directionSwitchDelay=1),
-            Fade(np[2], h={"start":0.6666666648, "end":0.833333331}, s=0.6666666648, v=1, currentH=0.7843, interval=0.001, delay=0.005, direction="forward", directionSwitchDelay=1),
-            Fade(np[3], h={"start":0.6666666648, "end":0.833333331}, s=0.6666666648, v=1, currentH=0.7843, interval=0.001, delay=0.005, direction="forward", directionSwitchDelay=1),
-            Fade(np[4], h={"start":0.6666666648, "end":0.833333331}, s=0.6666666648, v=1, currentH=0.7843, interval=0.001, delay=0.005, direction="forward", directionSwitchDelay=1)
-        )
-Clear()
-while True:
-    if poll_obj.poll(0):
-        char = sys.stdin.read(1)
+character = "D"
+tasks = []
+for _ in np.leds:
+    tasks.append(["", None])
+mode = {
+    "D": ["Racing", "Team Colors", "Racing", "Team Colors", "Team Colors"],
+    "E": ["Rainbow", "Rainbow", "Rainbow", "Rainbow", "Rainbow"],
+    "N": ["Detected Note", "", "Detected Note", "", ""],
+    "G": ["Possessed Note", "", "Possessed Note", "", ""]
+}
+function = {
+    "Team Colors": micropython.const("uasyncio.create_task(np.color_fade(strip=count, colors=[(0, 0, 200), (200, 0, 200)], mix=128, delay=0.01))"),
+    "Rainbow": micropython.const("uasyncio.create_task(np.color_fade(strip=count, colors=[(255, 0, 0), (0, 255, 0), (0, 0, 255)], mix=128, delay=0.01))"),
+    "Detected Note": micropython.const("uasyncio.create_task(np.static_color(strip=count, color=(255, 40, 0), delay=1, kill=False, kill_mode=''))"),
+    "Possessed Note": micropython.const("uasyncio.create_task(np.static_color(strip=count, color=(0, 255, 0), delay=2, kill=True, kill_mode='D'))"),
+    "Racing": micropython.const("uasyncio.create_task(np.racing(strip=count, baseColor=(0, 0, 200), racingColor=(200, 0, 200), length=3, delay=0.1))")
+}
+
+
+try:
+    uasyncio.run(set_mode())
+except Exception as e:
+    usys.print_exception(e)
+    utime.sleep(1)
+finally:
+    for led in np.leds:
+        led.fill((0, 0, 0))
+        led.write()
+    umachine.soft_reset()
