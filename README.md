@@ -2,6 +2,10 @@
 
 The LED project for FRC team 1038
 
+## Simulation Website
+
+<https://wokwi.com/projects/new/circuitpython-pi-pico>
+
 ## Setting up the project
 
 1. Clone the project
