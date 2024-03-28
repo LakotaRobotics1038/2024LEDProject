@@ -25,7 +25,7 @@ class NeopixelController:
                 self.led_starting_positions.append(portion["start"] - 1)
                 self.led_count.append(portion["count"])
 
-    async def color_fade(self, strip: int, colors: "list[tuple[int, int, int]]", mix: int, delay: float) -> None:
+    async def color_fade(self, strip: int, colors: "list[tuple[int, int, int]]", mix: int, step_delay: float, delay: float) -> None:
         while True:
             for count in range(len(colors)):
                 for fade_step in range(mix + 1):
@@ -33,7 +33,8 @@ class NeopixelController:
                     for led in range(self.led_count[strip] - self.led_starting_positions[strip]):
                         self.leds[self.led_strip[strip]][self.led_starting_positions[strip] + led] = intermediate_color
                     self.leds[self.led_strip[strip]].write()
-                    await uasyncio.sleep(delay)
+                    await uasyncio.sleep(step_delay)
+            await uasyncio.sleep(delay)
 
     async def static_color(self, strip: int, color: "tuple[int, int, int]", delay: int, kill: bool, kill_mode: str) -> None:
         global character
@@ -104,8 +105,8 @@ mode = {
     "G": ["Possessed Note", "", "Possessed Note", "", ""]
 }
 function = {
-    "Team Colors": micropython.const("uasyncio.create_task(np.color_fade(strip=count, colors=[(0, 0, 200), (200, 0, 200)], mix=128, delay=0.01))"),
-    "Rainbow": micropython.const("uasyncio.create_task(np.color_fade(strip=count, colors=[(255, 0, 0), (0, 255, 0), (0, 0, 255)], mix=128, delay=0.01))"),
+    "Team Colors": micropython.const("uasyncio.create_task(np.color_fade(strip=count, colors=[(0, 0, 200), (200, 0, 200)], mix=128, fade_delay=0.01, delay=0.4))"),
+    "Rainbow": micropython.const("uasyncio.create_task(np.color_fade(strip=count, colors=[(255, 0, 0), (0, 255, 0), (0, 0, 255)], mix=128, fade_delay=0.01, delay=0.4))"),
     "Detected Note": micropython.const("uasyncio.create_task(np.static_color(strip=count, color=(255, 40, 0), delay=1, kill=False, kill_mode=''))"),
     "Possessed Note": micropython.const("uasyncio.create_task(np.static_color(strip=count, color=(0, 255, 0), delay=2, kill=True, kill_mode='D'))"),
     "Racing": micropython.const("uasyncio.create_task(np.racing(strip=count, baseColor=(0, 0, 200), racingColor=(200, 0, 200), length=12, delay=0.15))")
