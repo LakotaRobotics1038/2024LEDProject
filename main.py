@@ -108,7 +108,7 @@ function = {
     "Rainbow": micropython.const("uasyncio.create_task(np.color_fade(strip=count, colors=[(255, 0, 0), (0, 255, 0), (0, 0, 255)], mix=128, delay=0.01))"),
     "Detected Note": micropython.const("uasyncio.create_task(np.static_color(strip=count, color=(255, 40, 0), delay=1, kill=False, kill_mode=''))"),
     "Possessed Note": micropython.const("uasyncio.create_task(np.static_color(strip=count, color=(0, 255, 0), delay=2, kill=True, kill_mode='D'))"),
-    "Racing": micropython.const("uasyncio.create_task(np.racing(strip=count, baseColor=(0, 0, 200), racingColor=(200, 0, 200), length=3, delay=0.1))")
+    "Racing": micropython.const("uasyncio.create_task(np.racing(strip=count, baseColor=(0, 0, 200), racingColor=(200, 0, 200), length=12, delay=0.15))")
 }
 
 
