@@ -8,10 +8,12 @@
     "micropico.syncFolder": "",
     "micropico.openOnStart": true,
     "python.analysis.typeshedPaths": [
-        ".vscode\\Pico-W-Stub"
+        ".vscode\\Pico-W-Stub",
+        ".vscode/Pico-W-Stub"
     ],
     "python.analysis.extraPaths": [
-        ".vscode\\Pico-W-Stub"
+        ".vscode\\Pico-W-Stub",
+        ".vscode/Pico-W-Stub"
     ],
     "python.linting.enabled": true,
     "python.testing.unittestArgs": [
@@ -22,5 +24,8 @@
         "*test.py"
     ],
     "python.testing.pytestEnabled": false,
-    "python.testing.unittestEnabled": true
+    "python.testing.unittestEnabled": true,
+    "editor.codeActionsOnSave": {
+        "source.fixAll.markdownlint": "explicit"
+    }
 }
