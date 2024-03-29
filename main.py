@@ -69,12 +69,19 @@ async def set_mode() -> None:
 
     select_poll = uselect.poll()
     select_poll.register(usys.stdin, uselect.POLLIN)
+    uart = umachine.UART(1, baudrate=9600, tx=umachine.Pin(4), rx=umachine.Pin(5))
+    uart.init(bits=8, parity=None, stop=0)
 
     while True:
         if select_poll.poll(0):
             received_input = usys.stdin.read(1)
             if received_input != "\n":
                 character = received_input
+        if uart.any(): 
+            data = uart.readline()
+            print(data)
+            character = str(data)
+
         for count, task in enumerate(tasks):
             if task[0] != character and mode[character][count] != "":
                 try:
