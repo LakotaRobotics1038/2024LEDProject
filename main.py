@@ -38,14 +38,14 @@ class NeopixelController:
             await sleep(delay)
 
     async def static_color(self, strip: int, color: "tuple[int, int, int]", delay: int, kill: bool, kill_mode: str) -> None:
-        global character
         global tasks
         global MODES
         global FUNCTIONS
+        global character
 
         for led in range(self.led_count[strip] - self.led_starting_positions[strip]):
             self.leds[self.led_strip[strip]][self.led_starting_positions[strip] + led] = color
-            self.leds[self.led_strip[strip]].write()
+        self.leds[self.led_strip[strip]].write()
         await sleep(delay)
         if kill:
             tasks[strip] = [character, eval(FUNCTIONS[MODES[kill_mode][strip]], globals(), {"count": strip})]
@@ -63,8 +63,20 @@ class NeopixelController:
                 self.leds[self.led_strip[strip]].write()
                 await sleep(delay)
 
-async def set_mode() -> None:
+def buffer_character(recieved_input: str) -> None:
     global character
+    global MODES
+
+    mode_names = []
+    for names, _ in MODES.items():
+        mode_names.append(names)
+    if recieved_input != "\n":
+        if recieved_input in mode_names:
+            character = recieved_input
+        else:
+            print("Unknown Character")
+
+async def set_mode() -> None:
     global tasks
     global MODES
     global FUNCTIONS
@@ -72,21 +84,21 @@ async def set_mode() -> None:
     uart = UART(0, 9600, parity=None, stop = 1, bits = 8, tx=Pin(0), rx=Pin(1), timeout=10)
     select_poll = poll()
     select_poll.register(stdin, POLLIN)
-    mode_names = []
-    for names, _ in MODES.items():
-        mode_names.append(names)
+
     while True:
         if bootsel_button() == 1:
             soft_reset()
+        
         if uart.any() > 0:
-            received_input = uart.read(1).decode('utf-8')
+            received_input = uart.read(1).decode("utf-8")
             print(received_input)
-            if received_input != "\n" and received_input in mode_names:
-                character = received_input
+            buffer_character(recieved_input=received_input)
+        
         if select_poll.poll(0):
             received_input = stdin.read(1)
-            if received_input != "\n" and received_input in mode_names:
-                character = received_input
+            buffer_character(recieved_input=received_input)
+        
+        print(character)
         for count, task in enumerate(tasks):
             if task[0] != character and MODES[character][count] != "":
                 try:
@@ -103,7 +115,6 @@ np = NeopixelController(pin_numbers=[2, 3, 4, 5], pin_counts=[44, 26, 12, 26], l
     [{"start":1, "count":26}]
 ])
 
-character = "D"
 tasks = []
 for _ in np.led_count:
     tasks.append(["", None])
@@ -111,7 +122,8 @@ MODES = {
     "D": [const("Racing"), const("Team Colors"), const("Racing"), const("Team Colors"), const("Team Colors")],
     "E": [const("Rainbow"), const("Rainbow"), const("Rainbow"), const("Rainbow"), const("Rainbow")],
     "N": [const("Detected Note"), const(""), const("Detected Note"), const(""), const("")],
-    "G": [const("Possessed Note"), const(""), const("Possessed Note"), const(""), const("")]
+    "G": [const("Possessed Note"), const(""), const("Possessed Note"), const(""), const("")],
+    "X": [const("Racing"), const(""), const("Racing"), const(""), const("")]
 }
 FUNCTIONS = {
     "Team Colors": const("create_task(np.color_fade(strip=count, colors=[(0, 0, 200), (200, 0, 200)], mix=128, step_delay=0.01, delay=0.4))"),
@@ -120,7 +132,7 @@ FUNCTIONS = {
     "Possessed Note": const("create_task(np.static_color(strip=count, color=(0, 255, 0), delay=2, kill=True, kill_mode='D'))"),
     "Racing": const("create_task(np.racing(strip=count, baseColor=(0, 0, 200), racingColor=(200, 0, 200), length=12, delay=0.15))")
 }
-
+character = "D"
 
 try:
     run(set_mode())
