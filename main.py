@@ -1,12 +1,13 @@
-import uasyncio
-import umachine
-import neopixel
-import usys
-import uselect
-import utime
-import micropython
-import gc
+from uasyncio import sleep, run, create_task
+from umachine import Pin, UART, soft_reset
+from neopixel import NeoPixel
+from usys import stdin, print_exception
+from uselect import poll, POLLIN
+from gc import enable
+from micropython import const
+from rp2 import bootsel_button
 
+enable()
 
 class NeopixelController:
 
@@ -18,7 +19,7 @@ class NeopixelController:
         self.led_count = []
         self.led_strip = []
         for pin, count in zip(pin_numbers, pin_counts):
-            self.leds.append(neopixel.NeoPixel(umachine.Pin(pin), count))
+            self.leds.append(NeoPixel(Pin(pin), count))
         for count, strip in enumerate(leds):
             for portion in strip:
                 self.led_strip.append(count)
@@ -33,21 +34,21 @@ class NeopixelController:
                     for led in range(self.led_count[strip] - self.led_starting_positions[strip]):
                         self.leds[self.led_strip[strip]][self.led_starting_positions[strip] + led] = intermediate_color
                     self.leds[self.led_strip[strip]].write()
-                    await uasyncio.sleep(step_delay)
-            await uasyncio.sleep(delay)
+                    await sleep(step_delay)
+            await sleep(delay)
 
     async def static_color(self, strip: int, color: "tuple[int, int, int]", delay: int, kill: bool, kill_mode: str) -> None:
         global character
         global tasks
-        global mode
-        global function
+        global MODES
+        global FUNCTIONS
 
         for led in range(self.led_count[strip] - self.led_starting_positions[strip]):
             self.leds[self.led_strip[strip]][self.led_starting_positions[strip] + led] = color
             self.leds[self.led_strip[strip]].write()
-        await uasyncio.sleep(delay)
+        await sleep(delay)
         if kill:
-            tasks[strip] = [character, eval(function[mode[kill_mode][strip]], globals(), {"count": strip})]
+            tasks[strip] = [character, eval(FUNCTIONS[MODES[kill_mode][strip]], globals(), {"count": strip})]
 
     async def racing(self, strip: int, baseColor: "tuple[int, int, int]", racingColor: "tuple[int, int, int]", length: int, delay: float) -> None:
         for led in range(self.led_starting_positions[strip], self.led_count[strip]):
@@ -60,32 +61,40 @@ class NeopixelController:
                 if led - length < self.led_starting_positions[strip]:
                     self.leds[self.led_strip[strip]][self.led_count[strip] - self.led_starting_positions[strip] + led - length] = baseColor
                 self.leds[self.led_strip[strip]].write()
-                await uasyncio.sleep(delay)
+                await sleep(delay)
 
 async def set_mode() -> None:
     global character
     global tasks
-    global mode
-    global function
+    global MODES
+    global FUNCTIONS
 
-    select_poll = uselect.poll()
-    select_poll.register(usys.stdin, uselect.POLLIN)
-
+    uart = UART(0, 9600, parity=None, stop = 1, bits = 8, tx=Pin(0), rx=Pin(1), timeout=10)
+    select_poll = poll()
+    select_poll.register(stdin, POLLIN)
+    mode_names = []
+    for names, _ in MODES.items():
+        mode_names.append(names)
     while True:
+        if bootsel_button() == 1:
+            soft_reset()
+        if uart.any() > 0:
+            received_input = uart.read(1).decode('utf-8')
+            print(received_input)
+            if received_input != "\n" and received_input in mode_names:
+                character = received_input
         if select_poll.poll(0):
-            received_input = usys.stdin.read(1)
-            if received_input != "\n":
+            received_input = stdin.read(1)
+            if received_input != "\n" and received_input in mode_names:
                 character = received_input
         for count, task in enumerate(tasks):
-            if task[0] != character and mode[character][count] != "":
+            if task[0] != character and MODES[character][count] != "":
                 try:
                     task[1].cancel()
                 except:
                     pass
-                tasks[count] = [character, eval(function[mode[character][count]], globals(), {"count":count})]
-        await uasyncio.sleep(0.01)
-
-gc.enable()
+                tasks[count] = [character, eval(FUNCTIONS[MODES[character][count]], globals(), {"count":count})]
+        await sleep(0.1)
 
 np = NeopixelController(pin_numbers=[2, 3, 4, 5], pin_counts=[44, 26, 12, 26], leds=[
     [{"start":1, "count":26}, {"start":27, "count":44}],
@@ -96,30 +105,30 @@ np = NeopixelController(pin_numbers=[2, 3, 4, 5], pin_counts=[44, 26, 12, 26], l
 
 character = "D"
 tasks = []
-for _ in np.leds:
+for _ in np.led_count:
     tasks.append(["", None])
-mode = {
-    "D": ["Racing", "Team Colors", "Racing", "Team Colors", "Team Colors"],
-    "E": ["Rainbow", "Rainbow", "Rainbow", "Rainbow", "Rainbow"],
-    "N": ["Detected Note", "", "Detected Note", "", ""],
-    "G": ["Possessed Note", "", "Possessed Note", "", ""]
+MODES = {
+    "D": [const("Racing"), const("Team Colors"), const("Racing"), const("Team Colors"), const("Team Colors")],
+    "E": [const("Rainbow"), const("Rainbow"), const("Rainbow"), const("Rainbow"), const("Rainbow")],
+    "N": [const("Detected Note"), const(""), const("Detected Note"), const(""), const("")],
+    "G": [const("Possessed Note"), const(""), const("Possessed Note"), const(""), const("")]
 }
-function = {
-    "Team Colors": micropython.const("uasyncio.create_task(np.color_fade(strip=count, colors=[(0, 0, 200), (200, 0, 200)], mix=128, fade_delay=0.01, delay=0.4))"),
-    "Rainbow": micropython.const("uasyncio.create_task(np.color_fade(strip=count, colors=[(255, 0, 0), (0, 255, 0), (0, 0, 255)], mix=128, fade_delay=0.01, delay=0.4))"),
-    "Detected Note": micropython.const("uasyncio.create_task(np.static_color(strip=count, color=(255, 40, 0), delay=1, kill=False, kill_mode=''))"),
-    "Possessed Note": micropython.const("uasyncio.create_task(np.static_color(strip=count, color=(0, 255, 0), delay=2, kill=True, kill_mode='D'))"),
-    "Racing": micropython.const("uasyncio.create_task(np.racing(strip=count, baseColor=(0, 0, 200), racingColor=(200, 0, 200), length=12, delay=0.15))")
+FUNCTIONS = {
+    "Team Colors": const("create_task(np.color_fade(strip=count, colors=[(0, 0, 200), (200, 0, 200)], mix=128, step_delay=0.01, delay=0.4))"),
+    "Rainbow": const("create_task(np.color_fade(strip=count, colors=[(255, 0, 0), (0, 255, 0), (0, 0, 255)], mix=128, step_delay=0.01, delay=0.4))"),
+    "Detected Note": const("create_task(np.static_color(strip=count, color=(255, 40, 0), delay=1, kill=False, kill_mode=''))"),
+    "Possessed Note": const("create_task(np.static_color(strip=count, color=(0, 255, 0), delay=2, kill=True, kill_mode='D'))"),
+    "Racing": const("create_task(np.racing(strip=count, baseColor=(0, 0, 200), racingColor=(200, 0, 200), length=12, delay=0.15))")
 }
 
 
 try:
-    uasyncio.run(set_mode())
+    run(set_mode())
 except Exception as e:
-    usys.print_exception(e)
-    utime.sleep(1)
+    print_exception(e)
+    sleep(1)
 finally:
     for led in np.leds:
         led.fill((0, 0, 0))
         led.write()
-    umachine.soft_reset()
+    soft_reset()
