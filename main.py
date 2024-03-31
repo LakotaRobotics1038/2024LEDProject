@@ -92,8 +92,7 @@ async def set_mode() -> None:
             received_input = uart.read(1).decode("utf-8")
             if received_input != "\n":
                 if received_input in robot_mode_names:
-                    if character != "D" or received_input == "A":
-                        character = received_input
+                    character = received_input
                 else:
                     print("Unknown Character")
         
@@ -101,7 +100,8 @@ async def set_mode() -> None:
             received_input = stdin.read(1)
             if received_input != "\n":
                 if received_input in operator_mode_names:
-                    character = received_input
+                    if character != "D" and character != "E":
+                        character = received_input
                 else:
                     print("Unknown Character")
         
