@@ -30,8 +30,13 @@
     },
     "cSpell.words": [
         "bootsel",
+        "micropython",
         "Neopixel",
         "POLLIN",
-        "uart"
+        "uart",
+        "uasyncio",
+        "umachine",
+        "uselect",
+        "usys"
     ]
 }
