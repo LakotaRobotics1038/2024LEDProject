@@ -39,7 +39,8 @@ class NeopixelController:
 
     async def static_color(self, strip: int, color: "tuple[int, int, int]", delay: int, kill: bool, kill_mode: str) -> None:
         global tasks
-        global MODES
+        global ROBOT_MODES
+        global OPERATOR_MODES
         global FUNCTIONS
         global character
 
@@ -48,7 +49,10 @@ class NeopixelController:
         self.leds[self.led_strip[strip]].write()
         await sleep(delay)
         if kill:
-            tasks[strip] = [character, eval(FUNCTIONS[MODES[kill_mode][strip]], globals(), {"count": strip})]
+            if kill_mode in ROBOT_MODES:
+                tasks[strip] = [character, eval(FUNCTIONS[ROBOT_MODES[kill_mode][strip]], globals(), {"count": strip})]
+            elif kill_mode in OPERATOR_MODES:
+                tasks[strip] = [character, eval(FUNCTIONS[OPERATOR_MODES[kill_mode][strip]], globals(), {"count": strip})]
 
     async def racing(self, strip: int, baseColor: "tuple[int, int, int]", racingColor: "tuple[int, int, int]", length: int, delay: float) -> None:
         for led in range(self.led_starting_positions[strip], self.led_count[strip]):
@@ -63,27 +67,22 @@ class NeopixelController:
                 self.leds[self.led_strip[strip]].write()
                 await sleep(delay)
 
-def buffer_character(recieved_input: str) -> None:
-    global character
-    global MODES
-
-    mode_names = []
-    for names, _ in MODES.items():
-        mode_names.append(names)
-    if recieved_input != "\n":
-        if recieved_input in mode_names:
-            character = recieved_input
-        else:
-            print("Unknown Character")
-
 async def set_mode() -> None:
     global tasks
-    global MODES
+    global ROBOT_MODES
+    global OPERATOR_MODES
     global FUNCTIONS
+    global character
 
     uart = UART(0, 9600, parity=None, stop = 1, bits = 8, tx=Pin(0), rx=Pin(1), timeout=10)
     select_poll = poll()
     select_poll.register(stdin, POLLIN)
+    robot_mode_names = []
+    operator_mode_names = []
+    for ROBOT_MODE_NAME, _ in ROBOT_MODES.items():
+        robot_mode_names.append(ROBOT_MODE_NAME)
+    for OPERATOR_MODE_NAME, _ in OPERATOR_MODES.items():
+        operator_mode_names.append(OPERATOR_MODE_NAME)
 
     while True:
         if bootsel_button() == 1:
@@ -91,21 +90,36 @@ async def set_mode() -> None:
         
         if uart.any() > 0:
             received_input = uart.read(1).decode("utf-8")
-            print(received_input)
-            buffer_character(recieved_input=received_input)
+            if received_input != "\n":
+                if received_input in robot_mode_names:
+                    if character != "D" or received_input == "A":
+                        character = received_input
+                else:
+                    print("Unknown Character")
         
         if select_poll.poll(0):
             received_input = stdin.read(1)
-            buffer_character(recieved_input=received_input)
+            if received_input != "\n":
+                if received_input in operator_mode_names:
+                    character = received_input
+                else:
+                    print("Unknown Character")
         
-        print(character)
         for count, task in enumerate(tasks):
-            if task[0] != character and MODES[character][count] != "":
-                try:
-                    task[1].cancel()
-                except:
-                    pass
-                tasks[count] = [character, eval(FUNCTIONS[MODES[character][count]], globals(), {"count":count})]
+            if character in ROBOT_MODES:
+                if task[0] != character and ROBOT_MODES[character][count] != "":
+                    try:
+                        task[1].cancel()
+                    except:
+                        pass
+                    tasks[count] = [character, eval(FUNCTIONS[ROBOT_MODES[character][count]], globals(), {"count":count})]
+            elif character in OPERATOR_MODES:
+                if task[0] != character and OPERATOR_MODES[character][count] != "":
+                    try:
+                        task[1].cancel()
+                    except:
+                        pass
+                    tasks[count] = [character, eval(FUNCTIONS[OPERATOR_MODES[character][count]], globals(), {"count":count})]
         await sleep(0.1)
 
 np = NeopixelController(pin_numbers=[2, 3, 4, 5], pin_counts=[44, 26, 12, 26], leds=[
@@ -118,12 +132,15 @@ np = NeopixelController(pin_numbers=[2, 3, 4, 5], pin_counts=[44, 26, 12, 26], l
 tasks = []
 for _ in np.led_count:
     tasks.append(["", None])
-MODES = {
+ROBOT_MODES = {
+    "A": [const(""), const(""), const(""), const(""), const("")],
     "D": [const("Racing"), const("Team Colors"), const("Racing"), const("Team Colors"), const("Team Colors")],
     "E": [const("Rainbow"), const("Rainbow"), const("Rainbow"), const("Rainbow"), const("Rainbow")],
+}
+OPERATOR_MODES = {
+    "X": [const("Racing"), const(""), const("Racing"), const(""), const("")],
     "N": [const("Detected Note"), const(""), const("Detected Note"), const(""), const("")],
-    "G": [const("Possessed Note"), const(""), const("Possessed Note"), const(""), const("")],
-    "X": [const("Racing"), const(""), const("Racing"), const(""), const("")]
+    "G": [const("Possessed Note"), const(""), const("Possessed Note"), const(""), const("")]
 }
 FUNCTIONS = {
     "Team Colors": const("create_task(np.color_fade(strip=count, colors=[(0, 0, 200), (200, 0, 200)], mix=128, step_delay=0.01, delay=0.4))"),

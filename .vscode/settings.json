@@ -27,5 +27,11 @@
     "python.testing.unittestEnabled": true,
     "editor.codeActionsOnSave": {
         "source.fixAll.markdownlint": "explicit"
-    }
+    },
+    "cSpell.words": [
+        "bootsel",
+        "Neopixel",
+        "POLLIN",
+        "uart"
+    ]
 }
