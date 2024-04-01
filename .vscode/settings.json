@@ -27,16 +27,5 @@
     "python.testing.unittestEnabled": true,
     "editor.codeActionsOnSave": {
         "source.fixAll.markdownlint": "explicit"
-    },
-    "cSpell.words": [
-        "bootsel",
-        "micropython",
-        "Neopixel",
-        "POLLIN",
-        "uart",
-        "uasyncio",
-        "umachine",
-        "uselect",
-        "usys"
-    ]
+    }
 }
