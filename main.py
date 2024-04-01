@@ -11,16 +11,16 @@ enable()
 
 class NeopixelController:
 
-    def __init__(self, pin_numbers: "list[int]", pin_counts: "list[int]", LEDs: "list[list[dict[str, int]]]") -> None:
+    def __init__(self, pin_numbers: "list[int]", pin_counts: "list[int]", leds: "list[list[dict[str, int]]]") -> None:
         if len(pin_numbers) != len(pin_counts):
-            raise ValueError(f"Pin Numbers and Pin Counts must be the same length. Current lengths are {len(pin_numbers)} pin numbers and {len(pin_counts)} LEDs.")
-        self.LEDs = []
+            raise ValueError(f"Pin Numbers and Pin Counts must be the same length. Current lengths are {len(pin_numbers)} pin numbers and {len(pin_counts)} leds.")
+        self.leds = []
         self.led_starting_positions = []
         self.led_count = []
         self.led_strip = []
         for pin, count in zip(pin_numbers, pin_counts):
-            self.LEDs.append(NeoPixel(Pin(pin), count))
-        for count, strip in enumerate(LEDs):
+            self.leds.append(NeoPixel(Pin(pin), count))
+        for count, strip in enumerate(leds):
             for portion in strip:
                 self.led_strip.append(count)
                 self.led_starting_positions.append(portion["start"] - 1)
@@ -32,8 +32,8 @@ class NeopixelController:
                 for fade_step in range(mix + 1):
                     intermediate_color = tuple(int((1 - fade_step / mix) * rgb_1 + fade_step / mix * rgb_2) for rgb_1, rgb_2 in zip(colors[count], colors[count + 1] if len(colors) > count + 1 else colors[0]))
                     for led in range(self.led_count[strip] - self.led_starting_positions[strip]):
-                        self.LEDs[self.led_strip[strip]][self.led_starting_positions[strip] + led] = intermediate_color
-                    self.LEDs[self.led_strip[strip]].write()
+                        self.leds[self.led_strip[strip]][self.led_starting_positions[strip] + led] = intermediate_color
+                    self.leds[self.led_strip[strip]].write()
                     await sleep(step_delay)
             await sleep(delay)
 
@@ -45,8 +45,8 @@ class NeopixelController:
         global character
 
         for led in range(self.led_count[strip] - self.led_starting_positions[strip]):
-            self.LEDs[self.led_strip[strip]][self.led_starting_positions[strip] + led] = color
-        self.LEDs[self.led_strip[strip]].write()
+            self.leds[self.led_strip[strip]][self.led_starting_positions[strip] + led] = color
+        self.leds[self.led_strip[strip]].write()
         await sleep(delay)
         if kill:
             if kill_mode in ROBOT_MODES:
@@ -56,15 +56,15 @@ class NeopixelController:
 
     async def racing(self, strip: int, baseColor: "tuple[int, int, int]", racingColor: "tuple[int, int, int]", length: int, delay: float) -> None:
         for led in range(self.led_starting_positions[strip], self.led_count[strip]):
-            self.LEDs[self.led_strip[strip]][led] = baseColor
+            self.leds[self.led_strip[strip]][led] = baseColor
         while True:
             for led in range(self.led_starting_positions[strip], self.led_count[strip]):
-                self.LEDs[self.led_strip[strip]][led] = racingColor
+                self.leds[self.led_strip[strip]][led] = racingColor
                 if led - length >= self.led_starting_positions[strip]:
-                    self.LEDs[self.led_strip[strip]][led - length] = baseColor
+                    self.leds[self.led_strip[strip]][led - length] = baseColor
                 if led - length < self.led_starting_positions[strip]:
-                    self.LEDs[self.led_strip[strip]][self.led_count[strip] - self.led_starting_positions[strip] + led - length] = baseColor
-                self.LEDs[self.led_strip[strip]].write()
+                    self.leds[self.led_strip[strip]][self.led_count[strip] - self.led_starting_positions[strip] + led - length] = baseColor
+                self.leds[self.led_strip[strip]].write()
                 await sleep(delay)
 
 async def set_mode() -> None:
@@ -122,7 +122,7 @@ async def set_mode() -> None:
                     tasks[count] = [character, eval(FUNCTIONS[OPERATOR_MODES[character][count]], globals(), {"count":count})]
         await sleep(0.1)
 
-np = NeopixelController(pin_numbers=[2, 3, 4, 5], pin_counts=[44, 26, 12, 26], LEDs=[
+np = NeopixelController(pin_numbers=[2, 3, 4, 5], pin_counts=[44, 26, 12, 26], leds=[
     [{"start":1, "count":26}, {"start":27, "count":44}],
     [{"start":1, "count":26}],
     [{"start":1, "count":12}],
@@ -157,7 +157,7 @@ except Exception as e:
     print_exception(e)
     sleep(1)
 finally:
-    for led in np.LEDs:
+    for led in np.leds:
         led.fill((0, 0, 0))
         led.write()
     soft_reset()
