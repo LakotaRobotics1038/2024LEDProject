@@ -129,10 +129,10 @@ MODES = {
     "G": [const("Possessed Note"), const(""), const("Possessed Note"), const(""), const("")]
 }
 FUNCTIONS = {
-    "Team Colors": const("create_task(np.color_fade(strip=count, colors=[(0, 0, 200), (200, 0, 200)], mix=128, step_delay=0.01, delay=0.4))"),
-    "Rainbow": const("create_task(np.color_fade(strip=count, colors=[(255, 0, 0), (0, 255, 0), (0, 0, 255)], mix=128, step_delay=0.01, delay=0.4))"),
+    "Team Colors": const("create_task(np.color_fade(strip=count, colors=[(0, 0, 200), (200, 0, 200)], mix=128, step_delay=0.01, delay=0.8))"),
+    "Rainbow": const("create_task(np.color_fade(strip=count, colors=[(255, 0, 0), (0, 255, 0), (0, 0, 255)], mix=128, step_delay=0.01, delay=0))"),
     "Detected Note": const("create_task(np.static_color(strip=count, color=(255, 40, 0), delay=1, kill=False, kill_mode=''))"),
-    "Possessed Note": const("create_task(np.static_color(strip=count, color=(0, 255, 0), delay=2, kill=True, kill_mode='D'))"),
+    "Possessed Note": const("create_task(np.static_color(strip=count, color=(0, 255, 0), delay=2, kill=True, kill_mode='X'))"),
     "Racing": const("create_task(np.racing(strip=count, baseColor=(0, 0, 200), racingColor=(200, 0, 200), length=12, delay=0.15))")
 }
 character = "D"
