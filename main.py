@@ -124,9 +124,9 @@ MODES = {
     "A": [const(""), const(""), const(""), const(""), const("")],
     "D": [const("Racing"), const("Team Colors"), const("Racing"), const("Team Colors"), const("Team Colors")],
     "E": [const("Rainbow"), const("Rainbow"), const("Rainbow"), const("Rainbow"), const("Rainbow")],
-    "X": [const("Racing"), const(""), const("Racing"), const(""), const("")],
-    "N": [const("Detected Note"), const(""), const("Detected Note"), const(""), const("")],
-    "G": [const("Possessed Note"), const(""), const("Possessed Note"), const(""), const("")]
+    "X": [const("Racing"), const("Team Colors"), const("Racing"), const("Team Colors"), const("Team Colors")],
+    "N": [const("Detected Note"), const("Team Colors"), const("Detected Note"), const("Team Colors"), const("Team Colors")],
+    "G": [const("Possessed Note"), const("Possessed Note"), const("Possessed Note"), const("Possessed Note"), const("Possessed Note")]
 }
 FUNCTIONS = {
     "Team Colors": const("create_task(np.color_fade(strip=count, colors=[(0, 0, 200), (200, 0, 200)], mix=128, step_delay=0.01, delay=0.8))"),
