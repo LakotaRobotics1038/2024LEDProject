@@ -121,19 +121,20 @@ tasks = []
 for _ in np.led_count:
     tasks.append(["", None])
 MODES = {
-    "A": [const(""), const(""), const(""), const(""), const("")],
-    "D": [const("Racing"), const("Team Colors"), const("Racing"), const("Team Colors"), const("Team Colors")],
-    "E": [const("Rainbow"), const("Rainbow"), const("Rainbow"), const("Rainbow"), const("Rainbow")],
-    "X": [const("Racing"), const(""), const("Racing"), const(""), const("")],
-    "N": [const("Detected Note"), const(""), const("Detected Note"), const(""), const("")],
-    "G": [const("Possessed Note"), const(""), const("Possessed Note"), const(""), const("")]
+    "A": ("", "", "", "", ""),
+    "D": ("Racing", "Team Colors", "Racing", "Team Colors", "Team Colors"),
+    "E": ("Rainbow", "Rainbow", "Rainbow", "Rainbow", "Rainbow"),
+    "X": ("Racing", "", "Racing", "", ""),
+    "N": ("Detected Note", "", "Detected Note", "", ""),
+    "G": ("Possessed Note", "", "Possessed Note", "", "")
 }
 FUNCTIONS = {
     "Team Colors": const("create_task(np.color_fade(strip=count, colors=[(0, 0, 200), (200, 0, 200)], mix=128, step_delay=0.01, delay=0.4))"),
     "Rainbow": const("create_task(np.color_fade(strip=count, colors=[(255, 0, 0), (0, 255, 0), (0, 0, 255)], mix=128, step_delay=0.01, delay=0.4))"),
     "Detected Note": const("create_task(np.static_color(strip=count, color=(255, 40, 0), delay=1, kill=False, kill_mode=''))"),
     "Possessed Note": const("create_task(np.static_color(strip=count, color=(0, 255, 0), delay=2, kill=True, kill_mode='D'))"),
-    "Racing": const("create_task(np.racing(strip=count, baseColor=(0, 0, 200), racingColor=(200, 0, 200), length=12, delay=0.15))")
+    "Racing": const("create_task(np.racing(strip=count, baseColor=(0, 0, 200), racingColor=(200, 0, 200), length=12, delay=0.15))"),
+    "Halloween": const("create_task(np.color_fade(strip=count, colors=[(94, 50, 186), (233, 128, 77), (235, 97, 35), (24, 24, 26)], mix=128, step_delay=0.01, delay=0.4))")
 }
 character = "D"
 
