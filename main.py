@@ -121,12 +121,12 @@ tasks = []
 for _ in np.led_count:
     tasks.append(["", None])
 MODES = {
-    "A": [const(""), const(""), const(""), const(""), const("")],
-    "D": [const("Racing"), const("Team Colors"), const("Racing"), const("Team Colors"), const("Team Colors")],
-    "E": [const("Rainbow"), const("Rainbow"), const("Rainbow"), const("Rainbow"), const("Rainbow")],
-    "X": [const("Racing"), const("Team Colors"), const("Racing"), const("Team Colors"), const("Team Colors")],
-    "N": [const("Detected Note"), const("Team Colors"), const("Detected Note"), const("Team Colors"), const("Team Colors")],
-    "G": [const("Possessed Note"), const("Possessed Note"), const("Possessed Note"), const("Possessed Note"), const("Possessed Note")]
+    "A": ("", "", "", "", ""),
+    "D": ("Racing", "Team Colors", "Racing", "Team Colors", "Team Colors"),
+    "E": ("Rainbow", "Rainbow", "Rainbow", "Rainbow", "Rainbow"),
+    "X": ("Racing", "Team Colors", "Racing", "Team Colors", "Team Colors"),
+    "N": ("Detected Note", "Team Colors", "Detected Note", "Team Colors", "Team Colors"),
+    "G": ("Possessed Note", "Possessed Note", "Possessed Note", "Possessed Note", "Possessed Note")
 }
 FUNCTIONS = {
     "Team Colors": const("create_task(np.color_fade(strip=count, colors=[(0, 0, 200), (200, 0, 200)], mix=128, step_delay=0.01, delay=0.8))"),
