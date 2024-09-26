@@ -12,6 +12,11 @@ The LED project for FRC team 1038
 2. Install MicroPico extension from the workspace recommended
 3. `CTRL+SHFT+P` and run `MicroPico: Configure project`
 
+## Troubleshooting
+
+- If this is not the first time that program has been flashed, empty the flash memory [here](https://www.raspberrypi.com/documentation/microcontrollers/pico-series.html#resetting-flash-memory/) and re-flash the program.
+- If the animation does not start, disconnect the Pico from all sources of power and plug it back in. This includes the USB port and GPIO pins.
+
 ## Modes
 
 The program provides 4 modes that are able to be changed through a serial interface.
