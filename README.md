@@ -14,7 +14,7 @@ The LED project for FRC team 1038
 
 ## Troubleshooting
 
-- If this is not the first time that program has been flashed, empty the flash memory [here](https://www.raspberrypi.com/documentation/microcontrollers/pico-series.html#resetting-flash-memory/) and re-flash the program.
+- If this is not the first time that program has been flashed, empty the flash memory [here](https://www.raspberrypi.com/documentation/microcontrollers/pico-series.html#resetting-flash-memory/https://datasheets.raspberrypi.com/soft/flash_nuke.uf2) and re-flash the program.
 - If the animation does not start, disconnect the Pico from all sources of power and plug it back in. This includes the USB port and GPIO pins.
 
 ## Modes
