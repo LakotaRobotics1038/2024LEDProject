@@ -1,12 +1,11 @@
 from uasyncio import sleep, run, create_task
+from asyncio import Task
 from umachine import Pin, UART, soft_reset
 from neopixel import NeoPixel
 from usys import stdin, print_exception
 from uselect import poll, POLLIN
-from micropython import const
 from rp2 import bootsel_button
 from math import sin
-
 
 class NeopixelController:
     def __init__(
@@ -14,22 +13,49 @@ class NeopixelController:
         pin_numbers: "tuple[int, ...]",
         pin_counts: "tuple[int, ...]",
         leds: "tuple[tuple[dict[str, int], ...], ...]",
+        modes: "dict[str, tuple[str, ...]]",
+        character: str,
     ) -> None:
         if len(pin_numbers) != len(pin_counts):
             raise ValueError(f"Pin Numbers and Pin Counts must be the same length. Current lengths are {len(pin_numbers)} pin numbers and {len(pin_counts)} leds.")
-        self.leds: list[NeoPixel] = []
+        self.leds: list[NeoPixel] = [NeoPixel(Pin(pin), count) for pin, count in zip(pin_numbers, pin_counts)]
         self.start: list[int] = []
         self.end: list[int] = []
         self.led_strip: list[int] = []
         self.led_count: list[int] = []
-        for pin, count in zip(pin_numbers, pin_counts):
-            self.leds.append(NeoPixel(Pin(pin), count))
         for count, strip in enumerate(leds):
             for portion in strip:
                 self.led_strip.append(count)
                 self.start.append(portion["start"] - 1)
                 self.end.append(portion["end"])
                 self.led_count.append(portion["end"] - portion["start"] - 1)
+        self.tasks = [["", None] for _ in self.end]
+        self.modes = modes
+        self.character = character
+
+    def get_function(self, count, pattern) -> Task:
+        if pattern == "Team Colors":
+            return create_task(controller.color_fade(strip=count, colors=[(0, 0, 200), (200, 0, 200)], mix=128, step_delay=0.01, delay=0.8))
+        elif pattern == "Rainbow":
+            return create_task(controller.color_fade(strip=count, colors=[(255, 0, 0), (0, 255, 0), (0, 0, 255)], mix=128, step_delay=0.01, delay=0))
+        elif pattern == "Detected Note":
+            return create_task(controller.static_color(strip=count, color=(255, 40, 0), delay=1, kill=False, kill_mode=""))
+        elif pattern == "Possessed Note":
+            return create_task(controller.static_color(strip=count, color=(0, 255, 0), delay=2, kill=True, kill_mode="X"))
+        elif pattern == "Chasing":
+            return create_task(controller.chasing(strip=count, base_color=(0, 0, 200), chasing_color=(200, 0, 200), mix=100, step_delay=0.1, length=10, frequency=1))
+        else:
+            raise ValueError("Pattern not recognized")
+
+    def choose_pattern(self) -> None:
+        for count, task in enumerate(self.tasks):
+            if self.character in self.modes:
+                if task[0] != self.character and self.modes[self.character][count] != "":
+                    try:
+                        task[1].cancel()
+                    except:
+                        pass
+                    self.tasks[count] = [self.character, self.get_function(count, self.modes[self.character][count])]
 
     async def color_fade(
         self,
@@ -57,32 +83,28 @@ class NeopixelController:
         kill: bool,
         kill_mode: str,
     ) -> None:
-        global tasks
-        global MODES
-        global FUNCTIONS
-        global character
-
         for led in range(self.led_count[strip]):
             self.leds[self.led_strip[strip]][self.start[strip] + led] = color
         self.leds[self.led_strip[strip]].write()
         await sleep(delay)
         if kill:
-            if kill_mode in MODES:
-                tasks[strip] = [character, eval(FUNCTIONS[MODES[kill_mode][strip]], globals(), {"count": strip})]
+            if kill_mode in self.modes:
+                self.character = kill_mode
+                self.choose_pattern()
             else:
-                raise ValueError(f"Unknown mode. '{kill_mode}'. Available modes are: {MODES}")
+                raise ValueError(f"Unknown mode. '{kill_mode}'. Available modes are: {self.modes}")
 
     async def chasing(
         self,
         strip: int,
         base_color: "tuple[int, int, int]",
-        racing_color: "tuple[int, int, int]",
+        chasing_color: "tuple[int, int, int]",
         mix: int,
         step_delay: float,
         length: int,
         frequency: int,
     ) -> None:
-        intermediate_colors: "list[list[int]]" = [[int((1 - fade_step / mix) * rgb_1 + fade_step / mix * rgb_2) for rgb_1, rgb_2 in zip(base_color, racing_color)] for fade_step in range(mix + 1)]
+        intermediate_colors: "list[list[int]]" = [[int((1 - fade_step / mix) * rgb_1 + fade_step / mix * rgb_2) for rgb_1, rgb_2 in zip(base_color, chasing_color)] for fade_step in range(mix + 1)]
         position: int = 0
         while True:
             for led in range(self.led_count[strip]):
@@ -93,16 +115,11 @@ class NeopixelController:
 
 
 async def set_mode(controller: NeopixelController) -> None:
-    global tasks
-    global MODES
-    global FUNCTIONS
-    global character
-
     uart = UART(0, 9600, parity=None, stop=1, bits=8, tx=Pin(0), rx=Pin(1), timeout=10)
     select_poll = poll()
     select_poll.register(stdin, POLLIN)
     mode_names = []
-    for mode, _ in MODES.items():
+    for mode, _ in controller.modes.items():
         mode_names.append(mode)
 
     while True:
@@ -116,7 +133,7 @@ async def set_mode(controller: NeopixelController) -> None:
             received_input = uart.read(1).decode("utf-8")
             if received_input != "\n":
                 if received_input in mode_names:
-                    character = received_input
+                    controller.character = received_input
                 else:
                     print("Unknown Character")
 
@@ -124,19 +141,11 @@ async def set_mode(controller: NeopixelController) -> None:
             received_input = stdin.read(1)
             if received_input != "\n":
                 if received_input in mode_names:
-                    if character != "D" and character != "E" or received_input == "A":
-                        character = received_input
+                    controller.character = received_input
                 else:
                     print("Unknown Character")
 
-        for count, task in enumerate(tasks):
-            if character in MODES:
-                if task[0] != character and MODES[character][count] != "":
-                    try:
-                        task[1].cancel()
-                    except:
-                        pass
-                    tasks[count] = [character, eval(FUNCTIONS[MODES[character][count]], globals(), {"count": count})]
+        controller.choose_pattern()
         await sleep(0.1)
 
 
@@ -158,62 +167,52 @@ controller = NeopixelController(
             {"start": 1, "end": 26},
         ),
     ),
+    modes={
+        "A": (
+            "",
+            "",
+            "",
+            "",
+            "",
+        ),
+        "D": (
+            "Chasing",
+            "Team Colors",
+            "Chasing",
+            "Team Colors",
+            "Team Colors",
+        ),
+        "E": (
+            "Rainbow",
+            "Rainbow",
+            "Rainbow",
+            "Rainbow",
+            "Rainbow",
+        ),
+        "X": (
+            "Chasing",
+            "Team Colors",
+            "Chasing",
+            "Team Colors",
+            "Team Colors",
+        ),
+        "N": (
+            "Detected Note",
+            "Team Colors",
+            "Detected Note",
+            "Team Colors",
+            "Team Colors",
+        ),
+        "G": (
+            "Possessed Note",
+            "Possessed Note",
+            "Possessed Note",
+            "Possessed Note",
+            "Possessed Note",
+        ),
+    },
+    character="D",
 )
-
-tasks = [["", None] for _ in controller.end]
-
-MODES = {
-    "A": (
-        "",
-        "",
-        "",
-        "",
-        "",
-    ),
-    "D": (
-        "Racing",
-        "Team Colors",
-        "Racing",
-        "Team Colors",
-        "Team Colors",
-    ),
-    "E": (
-        "Rainbow",
-        "Rainbow",
-        "Rainbow",
-        "Rainbow",
-        "Rainbow",
-    ),
-    "X": (
-        "Racing",
-        "Team Colors",
-        "Racing",
-        "Team Colors",
-        "Team Colors",
-    ),
-    "N": (
-        "Detected Note",
-        "Team Colors",
-        "Detected Note",
-        "Team Colors",
-        "Team Colors",
-    ),
-    "G": (
-        "Possessed Note",
-        "Possessed Note",
-        "Possessed Note",
-        "Possessed Note",
-        "Possessed Note",
-    ),
-}
-FUNCTIONS = {
-    "Team Colors": const("create_task(controller.color_fade(strip=count, colors=[(0, 0, 200), (200, 0, 200)], mix=128, step_delay=0.01, delay=0.8))"),
-    "Rainbow": const("create_task(controller.color_fade(strip=count, colors=[(255, 0, 0), (0, 255, 0), (0, 0, 255)], mix=128, step_delay=0.01, delay=0))"),
-    "Detected Note": const("create_task(controller.static_color(strip=count, color=(255, 40, 0), delay=1, kill=False, kill_mode=''))"),
-    "Possessed Note": const("create_task(controller.static_color(strip=count, color=(0, 255, 0), delay=2, kill=True, kill_mode='X'))"),
-    "Racing": const("create_task(controller.chasing(strip=count, base_color=(0, 0, 200), racing_color=(200, 0, 200), mix=100, step_delay=0.1, length=10, frequency=1))"),
-}
-character = "D"
 
 try:
     run(set_mode(controller))
