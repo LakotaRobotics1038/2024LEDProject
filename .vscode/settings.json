@@ -27,5 +27,19 @@
     "python.testing.unittestEnabled": true,
     "editor.codeActionsOnSave": {
         "source.fixAll.markdownlint": "explicit"
-    }
+    },
+    "cSpell.words": [
+        "bootsel",
+        "GPIO",
+        "leds",
+        "micropython",
+        "Neopixel",
+        "Pico",
+        "POLLIN",
+        "UART",
+        "uasyncio",
+        "umachine",
+        "uselect",
+        "usys"
+    ]
 }
