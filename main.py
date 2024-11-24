@@ -29,11 +29,11 @@ class NeopixelController:
                 self.start.append(portion["start"] - 1)
                 self.end.append(portion["end"])
                 self.led_count.append(portion["end"] - portion["start"] - 1)
-        self.tasks = [["", None] for _ in self.end]
-        self.modes = modes
-        self.character = character
+        self.tasks: "list[tuple[str, None | Task[None]]]" = [("", None) for _ in self.end]
+        self.modes: "dict[str, tuple[str, ...]]" = modes
+        self.character: str = character
 
-    def get_function(self, count, pattern) -> Task:
+    def get_function(self, count: int, pattern: str) -> Task[None]:
         if pattern == "Team Colors":
             return create_task(controller.color_fade(strip=count, colors=[(0, 0, 200), (200, 0, 200)], mix=128, step_delay=0.01, delay=0.8))
         elif pattern == "Rainbow":
@@ -51,11 +51,12 @@ class NeopixelController:
         for count, task in enumerate(self.tasks):
             if self.character in self.modes:
                 if task[0] != self.character and self.modes[self.character][count] != "":
-                    try:
-                        task[1].cancel()
-                    except:
-                        pass
-                    self.tasks[count] = [self.character, self.get_function(count, self.modes[self.character][count])]
+                    if task[1] is not None:
+                        try:
+                            task[1].cancel()
+                        except:
+                            pass
+                    self.tasks[count] = (self.character, self.get_function(count, self.modes[self.character][count]))
 
     async def color_fade(
         self,
@@ -116,11 +117,9 @@ class NeopixelController:
 
 async def set_mode(controller: NeopixelController) -> None:
     uart = UART(0, 9600, parity=None, stop=1, bits=8, tx=Pin(0), rx=Pin(1), timeout=10)
-    select_poll = poll()
+    select_poll: poll = poll()
     select_poll.register(stdin, POLLIN)
-    mode_names = []
-    for mode, _ in controller.modes.items():
-        mode_names.append(mode)
+    mode_names: "list[str]" = [mode for mode, _ in controller.modes.items()]
 
     while True:
         if bootsel_button() == 1:
