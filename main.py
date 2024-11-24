@@ -35,15 +35,15 @@ class NeopixelController:
 
     def get_function(self, count: int, pattern: str) -> Task[None]:
         if pattern == "Team Colors":
-            return create_task(controller.color_fade(strip=count, colors=[(0, 0, 200), (200, 0, 200)], mix=128, step_delay=0.01, delay=0.8))
+            return create_task(self.color_fade(strip=count, colors=[(0, 0, 200), (200, 0, 200)], mix=128, step_delay=0.01, delay=0.8))
         elif pattern == "Rainbow":
-            return create_task(controller.color_fade(strip=count, colors=[(255, 0, 0), (0, 255, 0), (0, 0, 255)], mix=128, step_delay=0.01, delay=0))
+            return create_task(self.color_fade(strip=count, colors=[(255, 0, 0), (0, 255, 0), (0, 0, 255)], mix=128, step_delay=0.01, delay=0))
         elif pattern == "Detected Note":
-            return create_task(controller.static_color(strip=count, color=(255, 40, 0), delay=1, kill=False, kill_mode=""))
+            return create_task(self.static_color(strip=count, color=(255, 40, 0), delay=1, kill=False, kill_mode=""))
         elif pattern == "Possessed Note":
-            return create_task(controller.static_color(strip=count, color=(0, 255, 0), delay=2, kill=True, kill_mode="X"))
+            return create_task(self.static_color(strip=count, color=(0, 255, 0), delay=2, kill=True, kill_mode="X"))
         elif pattern == "Chasing":
-            return create_task(controller.chasing(strip=count, base_color=(0, 0, 200), chasing_color=(200, 0, 200), mix=100, step_delay=0.1, length=10, frequency=1))
+            return create_task(self.chasing(strip=count, base_color=(0, 0, 200), chasing_color=(200, 0, 200), mix=100, step_delay=0.1, length=10, frequency=1))
         else:
             raise ValueError("Pattern not recognized")
 
