@@ -15,6 +15,7 @@ class NeopixelController:
         leds: "tuple[tuple[dict[str, int], ...], ...]",
         modes: "dict[str, tuple[str, ...]]",
         character: str,
+        brightness: float,
     ) -> None:
         if len(pin_numbers) != len(pin_counts):
             raise ValueError(f"Pin Numbers and Pin Counts must be the same length. Current lengths are {len(pin_numbers)} pin numbers and {len(pin_counts)} leds.")
@@ -32,6 +33,7 @@ class NeopixelController:
         self.tasks: "list[tuple[str, None | Task[None]]]" = [("", None) for _ in self.end]
         self.modes: "dict[str, tuple[str, ...]]" = modes
         self.character: str = character
+        self.brightness: float = brightness
 
     def get_function(self, count: int, pattern: str) -> Task[None]:
         if pattern == "Team Colors":
@@ -69,7 +71,7 @@ class NeopixelController:
         while True:
             for count in range(len(colors)):
                 for fade_step in range(mix + 1):
-                    intermediate_color = tuple(int((1 - fade_step / mix) * rgb_1 + fade_step / mix * rgb_2) for rgb_1, rgb_2 in zip(colors[count], colors[(count + 1) % len(colors)]))
+                    intermediate_color = tuple(int(((1 - fade_step / mix) * rgb_1 + fade_step / mix * rgb_2) * self.brightness) for rgb_1, rgb_2 in zip(colors[count], colors[(count + 1) % len(colors)]))
                     for led in range(self.led_count[strip]):
                         self.leds[self.led_strip[strip]][self.start[strip] + led] = intermediate_color
                     self.leds[self.led_strip[strip]].write()
@@ -85,7 +87,7 @@ class NeopixelController:
         kill_mode: str,
     ) -> None:
         for led in range(self.led_count[strip]):
-            self.leds[self.led_strip[strip]][self.start[strip] + led] = color
+            self.leds[self.led_strip[strip]][self.start[strip] + led] = tuple([int(value * self.brightness) for value in color])
         self.leds[self.led_strip[strip]].write()
         await sleep(delay)
         if kill:
@@ -105,7 +107,7 @@ class NeopixelController:
         length: int,
         frequency: int,
     ) -> None:
-        intermediate_colors: "list[list[int]]" = [[int((1 - fade_step / mix) * rgb_1 + fade_step / mix * rgb_2) for rgb_1, rgb_2 in zip(base_color, chasing_color)] for fade_step in range(mix + 1)]
+        intermediate_colors: "list[list[int]]" = [[int(((1 - fade_step / mix) * rgb_1 + fade_step / mix * rgb_2) * self.brightness) for rgb_1, rgb_2 in zip(base_color, chasing_color)] for fade_step in range(mix + 1)]
         position: int = 0
         while True:
             for led in range(self.led_count[strip]):
@@ -211,6 +213,7 @@ controller = NeopixelController(
         ),
     },
     character="D",
+    brightness=1,
 )
 
 try:
